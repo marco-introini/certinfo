@@ -1,6 +1,6 @@
 # Certinfo
 
-A CLI tool to analyze X.509 certificates and private keys (RSA, EC, DSA) written in Go.
+A CLI tool to analyze X.509 certificates and private keys (RSA, EC, Ed25519) written in Go.
 
 ## Features
 
@@ -10,6 +10,41 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, EC, DSA) written
 - Output in table or JSON format
 - Recursive directory scanning support
 - Supports both PEM and DER encoding formats
+- Test suite with 42+ tests covering all functionality
+
+## Supported Formats
+
+### Certificate Types
+
+| Type | Description | Key Sizes/Curves |
+|------|-------------|------------------|
+| RSA | RSA certificates | 2048, 3072, 4096 bits |
+| ECDSA | Elliptic Curve DSA | P-256, P-384, P-521 |
+| Ed25519 | Edwards Curve DSA | 256 bits (fixed) |
+| Ed448 | Edwards Curve DSA | 456 bits (fixed) |
+| Self-signed | Certificates without CA | All above types |
+
+### Certificate Extensions
+
+- Subject Alternative Names (SAN)
+- Wildcard certificates (`*.example.com`)
+- Certificate chains (Root → Intermediate → Leaf)
+- Client certificates (mTLS with `clientAuth` EKU)
+- CA certificates
+
+### Private Key Formats
+
+| Format | Type | Notes |
+|--------|------|-------|
+| PKCS#1 | RSA, EC | Traditional format (`BEGIN RSA PRIVATE KEY`) |
+| PKCS#8 | RSA, EC, Ed25519 | Encapsulated format (`BEGIN PRIVATE KEY`) |
+| EC PARAMETERS | EC | Separate curve parameters supported |
+| DER | All | Binary format without PEM headers |
+
+### Encodings
+
+- **PEM** (base64 with `-----BEGIN ...-----` headers)
+- **DER** (binary ASN.1 format)
 
 ## Installation
 
@@ -76,9 +111,9 @@ certinfo dir <directory/>
 
 **Example Output:**
 ```
-FILENAME                  CN                    ISSUER         EXPIRES              STATUS
-cert.pem                  example.com           Let's Encrypt  2025-01-01 00:00:00  valid
-expired.pem               old.example.com       DigiCert       2023-06-15 12:00:00  expired
+FILENAME          ENCODING  CN          ISSUER        STATUS
+cert.pem          PEM       example.com  Let's Encrypt  valid
+expired.pem       PEM       old.example  DigiCert       expired
 ```
 
 #### `key` - Analyze a Private Key
@@ -191,3 +226,48 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
+
+## Testing
+
+### Running Tests
+
+```bash
+go test ./... -v
+```
+
+### Test Certificates
+
+The project includes a comprehensive set of test certificates in `test_certs/`:
+
+```
+test_certs/
+├── traditional/
+│   ├── rsa/           # RSA 2048, 3072, 4096 (CA + server)
+│   └── ecdsa/         # P-256, P-384, P-521, Ed25519, Ed448
+├── chain/             # Root → Intermediate → Server
+├── selfsigned/        # Self-signed RSA + ECDSA
+├── expired/           # Expired certificates
+├── san-types/         # Certificates with SAN extensions
+├── client/            # Client certificates (mTLS)
+├── wildcard/          # Wildcard certificates (*.test.local)
+└── p12-format/        # PKCS#12 bundles (password: testpass)
+```
+
+### Regenerating Test Certificates
+
+```bash
+# Traditional certificates
+./generate_certs.sh
+
+# Post-quantum certificates (requires OpenSSL with PQC provider)
+./generate_pqc_certs.sh
+```
+
+### Test Coverage
+
+- Certificate parsing (all types and formats)
+- Key parsing (RSA, ECDSA, Ed25519, Ed448)
+- Directory scanning (recursive and non-recursive)
+- Certificate chain verification
+- SAN and wildcard handling
+- Status detection (valid, expired, expiring soon)

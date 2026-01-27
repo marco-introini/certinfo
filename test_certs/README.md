@@ -23,47 +23,51 @@ Traditional certificates using RSA and ECDSA algorithms.
 
 ### chain/
 Certificate chain (root -> intermediate -> server)
-- `root-ca.crt/key` - Root CA
-- `intermediate-ca.crt/key` - Intermediate CA
-- `server.crt/key` - Server certificate signed by intermediate CA
+- `root-ca.crt/key` - Root CA (4096-bit RSA)
+- `intermediate-ca.crt/key` - Intermediate CA (4096-bit RSA)
+- `server.crt/key` - Server certificate (2048-bit RSA) signed by intermediate CA
 
 ### selfsigned/
 Self-signed certificates (no CA)
-- `rsa-selfsigned.crt/key` - Self-signed RSA
-- `ecdsa-selfsigned.crt/key` - Self-signed ECDSA
+- `rsa-selfsigned.crt/key` - Self-signed RSA (2048-bit)
+- `ecdsa-selfsigned.crt/key` - Self-signed ECDSA (P-256)
 
 ### expired/
 Expired certificates for testing validation
-- `expired.crt/key` - Certificate that expired today
+- `expired.crt/key` - Certificate with 0 days validity (already expired)
 
 ### san-types/
 Certificates with Subject Alternative Names (SAN)
-- `san-rsa.crt/key` - RSA certificate with SAN (localhost, test.local, IPs)
-- `san-ecdsa.crt/key` - ECDSA certificate with SAN
+- `san-rsa.crt/key` - RSA certificate with SAN (localhost, test.local, 127.0.0.1, ::1)
+- `san-ecdsa.crt/key` - ECDSA certificate with same SANs
 
 ### client/
 Client certificates for mTLS testing
-- `client.crt/key` - Certificate with clientAuth extended key usage
+- `client.crt/key` - Certificate with `clientAuth` extended key usage
 
 ### wildcard/
 Wildcard certificates
-- `wildcard.crt/key` - *.test.local wildcard certificate
+- `wildcard.crt/key` - `*.test.local` wildcard certificate
 
 ### p12-format/
-PKCS#12 format certificates
+PKCS#12 format certificates (password: `testpass`)
 - `server-rsa2048.pfx` - RSA server certificate in PFX format
 - `server-ecdsa-p256.pfx` - ECDSA server certificate in PFX format
 
-Password for PFX files: `testpass`
+## Generation
 
-### postquantum/
-Post-quantum / quantum-safe certificates.
-Note: Currently contains configuration templates for PQC algorithms.
-ML-DSA and ML-KEM require OpenSSL 3.x with PQC provider enabled.
+Use the scripts in the project root to regenerate all certificates:
 
-## Usage
+```bash
+# Generate all traditional certificates
+./generate_certs.sh
 
-All keys without password protection can be read directly.
-Keys with `-passout pass:test` or `-passout pass:testpass` require:
-- OpenSSL: `-passin pass:test`
-- Go: Use `x509.DecodePKCS1PrivateKey` or `x509.ParsePKCS8PrivateKey` with decrypted key
+# Generate post-quantum certificates (requires OpenSSL with PQC provider)
+./generate_pqc_certs.sh
+```
+
+## Notes
+
+- All keys are decrypted (no password) for testing purposes
+- Ed448 keys in PKCS#8 format may not parse on some Go versions
+- ML-DSA/ML-KEM certificates require OpenSSL with PQC provider
