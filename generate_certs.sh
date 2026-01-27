@@ -277,6 +277,17 @@ openssl pkcs12 -export -out server-ecdsa-p256.pfx \
     -in "${CERT_DIR}/traditional/ecdsa/server-ecdsa-p256.crt" \
     -CAfile "${CERT_DIR}/traditional/ecdsa/ca-ecdsa-p256.crt" -passout pass:testpass
 
+echo "[7/7] Decrypting password-protected keys for tests..."
+cd "${CERT_DIR}/san-types"
+openssl rsa -in san-rsa.key -out san-rsa.key.dec -passin pass:test 2>/dev/null && mv san-rsa.key.dec san-rsa.key || true
+openssl pkcs8 -in san-ecdsa.key -out san-ecdsa.key.dec -passin pass:test -nocrypt 2>/dev/null && mv san-ecdsa.key.dec san-ecdsa.key || true
+
+cd "${CERT_DIR}/client"
+openssl rsa -in client.key -out client.key.dec -passin pass:test 2>/dev/null && mv client.key.dec client.key || true
+
+cd "${CERT_DIR}/wildcard"
+openssl rsa -in wildcard.key -out wildcard.key.dec -passin pass:test 2>/dev/null && mv wildcard.key.dec wildcard.key || true
+
 cat > "${CERT_DIR}/.gitignore" << 'EOF'
 *
 !README.md

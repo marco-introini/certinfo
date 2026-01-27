@@ -2,6 +2,8 @@ package certificate
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -18,10 +20,31 @@ type CertificateInfo struct {
 	NotBefore    string
 	NotAfter     string
 	Algorithm    string
+	KeyType      string
 	Bits         int
 	SerialNumber string
 	SANs         []string
 	IsCA         bool
+}
+
+func getKeyBitsAndType(pub any) (string, int) {
+	switch key := pub.(type) {
+	case *rsa.PublicKey:
+		return "RSA", key.N.BitLen()
+	case *ecdsa.PublicKey:
+		switch key.Curve {
+		case elliptic.P256():
+			return "ECDSA", 256
+		case elliptic.P384():
+			return "ECDSA", 384
+		case elliptic.P521():
+			return "ECDSA", 521
+		default:
+			return "ECDSA", key.Curve.Params().BitSize
+		}
+	default:
+		return fmt.Sprintf("%T", pub), 0
+	}
 }
 
 func isPEM(data []byte) bool {
@@ -64,10 +87,10 @@ func ParseCertificate(filePath string) (*CertificateInfo, error) {
 		NotBefore:    cert.NotBefore.Format("2006-01-02 15:04:05"),
 		NotAfter:     cert.NotAfter.Format("2006-01-02 15:04:05"),
 		Algorithm:    cert.SignatureAlgorithm.String(),
-		Bits:         cert.PublicKey.(*rsa.PublicKey).Size() * 8,
 		SerialNumber: cert.SerialNumber.String(),
 		IsCA:         cert.IsCA,
 	}
+	info.KeyType, info.Bits = getKeyBitsAndType(cert.PublicKey)
 
 	if len(cert.DNSNames) > 0 {
 		info.SANs = cert.DNSNames
@@ -105,10 +128,10 @@ func ParseCertificateFromBytes(data []byte) (*CertificateInfo, error) {
 		NotBefore:    cert.NotBefore.Format("2006-01-02 15:04:05"),
 		NotAfter:     cert.NotAfter.Format("2006-01-02 15:04:05"),
 		Algorithm:    cert.SignatureAlgorithm.String(),
-		Bits:         cert.PublicKey.(*rsa.PublicKey).Size() * 8,
 		SerialNumber: cert.SerialNumber.String(),
 		IsCA:         cert.IsCA,
 	}
+	info.KeyType, info.Bits = getKeyBitsAndType(cert.PublicKey)
 
 	if len(cert.DNSNames) > 0 {
 		info.SANs = cert.DNSNames

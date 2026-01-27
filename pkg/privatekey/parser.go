@@ -2,7 +2,9 @@ package privatekey
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -42,12 +44,21 @@ func ParsePrivateKey(filePath string) (*KeyInfo, error) {
 	var encoding string
 
 	if isPEM(data) {
-		block, _ := pem.Decode(data)
-		if block == nil {
-			return nil, fmt.Errorf("no PEM data found in %s", filePath)
+		for {
+			block, rest := pem.Decode(data)
+			if block == nil {
+				break
+			}
+			if block.Type == "EC PRIVATE KEY" || block.Type == "PRIVATE KEY" || block.Type == "RSA PRIVATE KEY" {
+				keyBytes = block.Bytes
+				encoding = "PEM"
+				break
+			}
+			data = rest
 		}
-		keyBytes = block.Bytes
-		encoding = "PEM"
+		if keyBytes == nil {
+			return nil, fmt.Errorf("no private key found in %s", filePath)
+		}
 	} else {
 		keyBytes = data
 		encoding = "DER"
@@ -61,12 +72,21 @@ func ParsePrivateKeyFromBytes(data []byte, filename string) (*KeyInfo, error) {
 	var encoding string
 
 	if isPEM(data) {
-		block, _ := pem.Decode(data)
-		if block == nil {
-			return nil, fmt.Errorf("no PEM data found")
+		for {
+			block, rest := pem.Decode(data)
+			if block == nil {
+				break
+			}
+			if block.Type == "EC PRIVATE KEY" || block.Type == "PRIVATE KEY" || block.Type == "RSA PRIVATE KEY" {
+				keyBytes = block.Bytes
+				encoding = "PEM"
+				break
+			}
+			data = rest
 		}
-		keyBytes = block.Bytes
-		encoding = "PEM"
+		if keyBytes == nil {
+			return nil, fmt.Errorf("no private key found")
+		}
 	} else {
 		keyBytes = data
 		encoding = "DER"
@@ -107,7 +127,30 @@ func parseKey(der []byte, filename string, encoding string) (*KeyInfo, error) {
 
 	pkcs8Key, err := x509.ParsePKCS8PrivateKey(der)
 	if err == nil {
-		switch any(pkcs8Key).(type) {
+		switch key := pkcs8Key.(type) {
+		case *rsa.PrivateKey:
+			info.KeyType = "RSA"
+			info.Bits = key.N.BitLen()
+			info.Algorithm = "PKCS#8"
+			return info, nil
+		case *ecdsa.PrivateKey:
+			info.KeyType = "EC"
+			info.Algorithm = "PKCS#8"
+			switch key.Curve {
+			case elliptic.P256():
+				info.Bits = 256
+				info.Curve = "P-256"
+			case elliptic.P384():
+				info.Bits = 384
+				info.Curve = "P-384"
+			case elliptic.P521():
+				info.Bits = 521
+				info.Curve = "P-521"
+			default:
+				info.Bits = key.Curve.Params().BitSize
+				info.Curve = key.Curve.Params().Name
+			}
+			return info, nil
 		case ed25519.PrivateKey:
 			info.KeyType = "Ed25519"
 			info.Bits = 256
