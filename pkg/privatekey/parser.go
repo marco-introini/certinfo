@@ -1,6 +1,7 @@
 package privatekey
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
@@ -12,6 +13,7 @@ import (
 
 type KeyInfo struct {
 	Filename  string
+	Encoding  string
 	KeyType   string
 	Algorithm string
 	Bits      int
@@ -25,31 +27,55 @@ type KeySummary struct {
 	Curve    string
 }
 
+func isPEM(data []byte) bool {
+	return bytes.HasPrefix(data, []byte("-----BEGIN"))
+}
+
 func ParsePrivateKey(filePath string) (*KeyInfo, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	block, _ := pem.Decode(data)
-	if block == nil {
-		return nil, fmt.Errorf("no PEM data found in %s", filePath)
+	var keyBytes []byte
+	var encoding string
+
+	if isPEM(data) {
+		block, _ := pem.Decode(data)
+		if block == nil {
+			return nil, fmt.Errorf("no PEM data found in %s", filePath)
+		}
+		keyBytes = block.Bytes
+		encoding = "PEM"
+	} else {
+		keyBytes = data
+		encoding = "DER"
 	}
 
-	return parseKey(block.Bytes, filePath)
+	return parseKey(keyBytes, filePath, encoding)
 }
 
 func ParsePrivateKeyFromBytes(data []byte, filename string) (*KeyInfo, error) {
-	block, _ := pem.Decode(data)
-	if block == nil {
-		return nil, fmt.Errorf("no PEM data found")
+	var keyBytes []byte
+	var encoding string
+
+	if isPEM(data) {
+		block, _ := pem.Decode(data)
+		if block == nil {
+			return nil, fmt.Errorf("no PEM data found")
+		}
+		keyBytes = block.Bytes
+		encoding = "PEM"
+	} else {
+		keyBytes = data
+		encoding = "DER"
 	}
 
-	return parseKey(block.Bytes, filename)
+	return parseKey(keyBytes, filename, encoding)
 }
 
-func parseKey(der []byte, filename string) (*KeyInfo, error) {
-	info := &KeyInfo{Filename: filename}
+func parseKey(der []byte, filename string, encoding string) (*KeyInfo, error) {
+	info := &KeyInfo{Filename: filename, Encoding: encoding}
 
 	key, err := x509.ParsePKCS1PrivateKey(der)
 	if err == nil {

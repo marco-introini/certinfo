@@ -1,6 +1,7 @@
 package certificate
 
 import (
+	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -10,6 +11,7 @@ import (
 
 type CertificateInfo struct {
 	Filename     string
+	Encoding     string
 	CommonName   string
 	Issuer       string
 	Subject      string
@@ -22,24 +24,40 @@ type CertificateInfo struct {
 	IsCA         bool
 }
 
+func isPEM(data []byte) bool {
+	return bytes.HasPrefix(data, []byte("-----BEGIN"))
+}
+
 func ParseCertificate(filePath string) (*CertificateInfo, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	block, _ := pem.Decode(data)
-	if block == nil {
-		return nil, fmt.Errorf("no PEM data found in %s", filePath)
+	var cert *x509.Certificate
+	var parseErr error
+
+	var encoding string
+
+	if isPEM(data) {
+		block, _ := pem.Decode(data)
+		if block == nil {
+			return nil, fmt.Errorf("no PEM data found in %s", filePath)
+		}
+		cert, parseErr = x509.ParseCertificate(block.Bytes)
+		encoding = "PEM"
+	} else {
+		cert, parseErr = x509.ParseCertificate(data)
+		encoding = "DER"
 	}
 
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return nil, err
+	if parseErr != nil {
+		return nil, parseErr
 	}
 
 	info := &CertificateInfo{
 		Filename:     filePath,
+		Encoding:     encoding,
 		CommonName:   cert.Subject.CommonName,
 		Issuer:       cert.Issuer.CommonName,
 		Subject:      cert.Subject.String(),
@@ -59,17 +77,28 @@ func ParseCertificate(filePath string) (*CertificateInfo, error) {
 }
 
 func ParseCertificateFromBytes(data []byte) (*CertificateInfo, error) {
-	block, _ := pem.Decode(data)
-	if block == nil {
-		return nil, fmt.Errorf("no PEM data found")
+	var cert *x509.Certificate
+	var parseErr error
+	var encoding string
+
+	if isPEM(data) {
+		block, _ := pem.Decode(data)
+		if block == nil {
+			return nil, fmt.Errorf("no PEM data found")
+		}
+		cert, parseErr = x509.ParseCertificate(block.Bytes)
+		encoding = "PEM"
+	} else {
+		cert, parseErr = x509.ParseCertificate(data)
+		encoding = "DER"
 	}
 
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return nil, err
+	if parseErr != nil {
+		return nil, parseErr
 	}
 
 	info := &CertificateInfo{
+		Encoding:     encoding,
 		CommonName:   cert.Subject.CommonName,
 		Issuer:       cert.Issuer.CommonName,
 		Subject:      cert.Subject.String(),

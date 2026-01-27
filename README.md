@@ -9,6 +9,7 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, EC, DSA) written
 - Parse private keys (RSA, EC, Ed25519) with key characteristics
 - Output in table or JSON format
 - Recursive directory scanning support
+- Supports both PEM and DER encoding formats
 
 ## Installation
 
@@ -36,10 +37,11 @@ certinfo [command] [flags]
 
 #### `cert` - Analyze a Single Certificate
 
-Show detailed information about an X.509 certificate file.
+Show detailed information about an X.509 certificate file. Supports both PEM and DER formats.
 
 ```bash
 certinfo cert <certificate.pem>
+certinfo cert <certificate.der>
 ```
 
 **Flags:**
@@ -81,10 +83,11 @@ expired.pem               old.example.com       DigiCert       2023-06-15 12:00:
 
 #### `key` - Analyze a Private Key
 
-Show information about a private key file.
+Show information about a private key file. Supports both PEM and DER formats.
 
 ```bash
 certinfo key <key.pem>
+certinfo key <key.der>
 ```
 
 **Supports:**
@@ -143,10 +146,11 @@ certinfo cert certificate.pem --format json
 
 ## Examples
 
-### Check a Single Certificate
+### Check a Single Certificate (PEM or DER)
 
 ```bash
 certinfo cert /path/to/certificate.pem
+certinfo cert /path/to/certificate.der
 ```
 
 ### Check All Certificates in a Directory
@@ -161,10 +165,11 @@ certinfo dir ./certs/
 certinfo dir ./certs/ --recursive
 ```
 
-### Check a Private Key
+### Check a Private Key (PEM or DER)
 
 ```bash
 certinfo key /path/to/privatekey.pem
+certinfo key /path/to/privatekey.der
 ```
 
 ### Export Certificate Summary as JSON

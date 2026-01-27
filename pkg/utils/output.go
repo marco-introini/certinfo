@@ -28,6 +28,7 @@ func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat
 	defer w.Flush()
 
 	fmt.Fprintf(w, "Filename:\t%s\n", cert.Filename)
+	fmt.Fprintf(w, "Encoding:\t%s\n", cert.Encoding)
 	fmt.Fprintf(w, "Common Name:\t%s\n", cert.CommonName)
 	fmt.Fprintf(w, "Issuer:\t%s\n", cert.Issuer)
 	fmt.Fprintf(w, "Subject:\t%s\n", cert.Subject)
@@ -71,6 +72,7 @@ func PrintKeyInfo(key *privatekey.KeyInfo, format OutputFormat) {
 	defer w.Flush()
 
 	fmt.Fprintf(w, "Filename:\t%s\n", key.Filename)
+	fmt.Fprintf(w, "Encoding:\t%s\n", key.Encoding)
 	fmt.Fprintf(w, "Key Type:\t%s\n", key.KeyType)
 	fmt.Fprintf(w, "Algorithm:\t%s\n", key.Algorithm)
 	fmt.Fprintf(w, "Bits:\t%d\n", key.Bits)
