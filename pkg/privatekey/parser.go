@@ -22,6 +22,7 @@ type KeyInfo struct {
 
 type KeySummary struct {
 	Filename string
+	Encoding string
 	KeyType  string
 	Bits     int
 	Curve    string
@@ -141,6 +142,7 @@ func SummarizeDirectory(dirPath string) ([]KeySummary, error) {
 
 		summary := KeySummary{
 			Filename: entry.Name(),
+			Encoding: key.Encoding,
 			KeyType:  key.KeyType,
 			Bits:     key.Bits,
 			Curve:    key.Curve,
@@ -173,6 +175,7 @@ func SummarizeDirectoryRecursive(dirPath string) ([]KeySummary, error) {
 
 		summary := KeySummary{
 			Filename: relPath,
+			Encoding: key.Encoding,
 			KeyType:  key.KeyType,
 			Bits:     key.Bits,
 			Curve:    key.Curve,

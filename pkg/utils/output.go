@@ -54,10 +54,10 @@ func PrintCertificateSummaries(summaries []certificate.CertificateSummary, forma
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	defer w.Flush()
 
-	fmt.Fprintf(w, "FILENAME\tCN\tISSUER\tEXPIRES\tSTATUS\n")
+	fmt.Fprintf(w, "FILENAME\tENCODING\tCN\tISSUER\tSTATUS\n")
 	for _, s := range summaries {
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-			s.Filename, s.CommonName, s.Issuer, s.NotAfter, s.Status)
+			s.Filename, s.Encoding, s.CommonName, s.Issuer, s.Status)
 	}
 }
 
@@ -91,13 +91,13 @@ func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	defer w.Flush()
 
-	fmt.Fprintf(w, "FILENAME\tTYPE\tBITS\tCURVE\n")
+	fmt.Fprintf(w, "FILENAME\tENCODING\tTYPE\tBITS\tCURVE\n")
 	for _, s := range summaries {
 		curve := s.Curve
 		if curve == "" {
 			curve = "-"
 		}
-		fmt.Fprintf(w, "%s\t%s\t%d\t%s\n",
-			s.Filename, s.KeyType, s.Bits, curve)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\n",
+			s.Filename, s.Encoding, s.KeyType, s.Bits, curve)
 	}
 }
