@@ -1,63 +1,188 @@
-# Certinfo - Certificate Checker
+# Certinfo
 
-## Overview
-
-This is a simple command-line interface (CLI) program written in Go for checking PEM file certificates. It helps you validate and retrieve information about X.509 certificates from PEM-encoded files.
+A CLI tool to analyze X.509 certificates and private keys (RSA, EC, DSA) written in Go.
 
 ## Features
 
-- Check the validity of X.509 certificates in PEM files.
-- Display information about the certificate, such as subject, issuer, validity period, and more.
-
-## Prerequisites
-
-Make sure you have Go installed on your machine.
+- Analyze single X.509 certificate files with detailed information
+- Scan directories for certificates with summary output
+- Parse private keys (RSA, EC, Ed25519) with key characteristics
+- Output in table or JSON format
+- Recursive directory scanning support
 
 ## Installation
 
+### From Source
+
 ```bash
-go get -u github.com/marco-introini/certinfo-go
+git clone https://github.com/marcobagio/certinfo-go.git
+cd certinfo-go
+go build -o certinfo ./main.go
+```
+
+### Install Globally
+
+```bash
+go install ./main.go
 ```
 
 ## Usage
 
-```bash
-certinfo path/to/certificate.pem
+```
+certinfo [command] [flags]
 ```
 
-Replace `path/to/certificate.pem` with the path to your PEM-encoded certificate file.
+### Available Commands
 
-### Options
+#### `cert` - Analyze a Single Certificate
 
-None, for now
-
-## Example
+Show detailed information about an X.509 certificate file.
 
 ```bash
-certinfo /path/to/certificate.pem
+certinfo cert <certificate.pem>
 ```
 
-## Build from Source
+**Flags:**
+- `-f, --format string` - Output format (table, json) (default: table)
+
+**Example Output:**
+```
+Filename:       certificate.pem
+Common Name:    example.com
+Issuer:         Let's Encrypt
+Subject:        CN=example.com
+Not Before:     2024-01-01 00:00:00
+Not After:      2025-01-01 00:00:00
+Algorithm:      SHA256-RSA
+Bits:           2048
+Serial Number:  1234567890abcdef
+Is CA:          false
+SANs:           [example.com www.example.com]
+```
+
+#### `dir` - Summarize Certificates in a Directory
+
+List all certificates in a directory with summary information (CN and expiration).
 
 ```bash
-git clone https://github.com/marco-introini/certinfo-go.git
-cd certinfo-go
-go build
+certinfo dir <directory/>
+```
+
+**Flags:**
+- `-f, --format string` - Output format (table, json) (default: table)
+- `-r, --recursive` - Search recursively through subdirectories
+
+**Example Output:**
+```
+FILENAME                  CN                    ISSUER         EXPIRES              STATUS
+cert.pem                  example.com           Let's Encrypt  2025-01-01 00:00:00  valid
+expired.pem               old.example.com       DigiCert       2023-06-15 12:00:00  expired
+```
+
+#### `key` - Analyze a Private Key
+
+Show information about a private key file.
+
+```bash
+certinfo key <key.pem>
+```
+
+**Supports:**
+- RSA keys (PKCS#1, PKCS#8)
+- EC keys
+- Ed25519 keys
+
+**Flags:**
+- `-f, --format string` - Output format (table, json) (default: table)
+
+**Example Output:**
+```
+Filename:   privatekey.pem
+Key Type:   RSA
+Algorithm:  PKCS#1 v1.5
+Bits:       2048
+```
+
+#### `keydir` - Summarize Private Keys in a Directory
+
+List all private keys in a directory with summary information.
+
+```bash
+certinfo keydir <directory/>
+```
+
+**Flags:**
+- `-f, --format string` - Output format (table, json) (default: table)
+- `-r, --recursive` - Search recursively through subdirectories
+
+**Example Output:**
+```
+FILENAME              TYPE       BITS    CURVE
+rsa2048.key           RSA        2048    -
+ec256.key             EC         256     P-256
+ed25519.key           Ed25519    256     -
+```
+
+### Global Flags
+
+- `-h, --help` - Help for any command
+
+## Output Formats
+
+### Table Format (Default)
+
+Human-readable tab-separated output with alignment.
+
+### JSON Format
+
+Machine-readable JSON output suitable for scripting.
+
+```bash
+certinfo cert certificate.pem --format json
+```
+
+## Examples
+
+### Check a Single Certificate
+
+```bash
+certinfo cert /path/to/certificate.pem
+```
+
+### Check All Certificates in a Directory
+
+```bash
+certinfo dir ./certs/
+```
+
+### Recursively Scan for Certificates
+
+```bash
+certinfo dir ./certs/ --recursive
+```
+
+### Check a Private Key
+
+```bash
+certinfo key /path/to/privatekey.pem
+```
+
+### Export Certificate Summary as JSON
+
+```bash
+certinfo dir ./certs/ --format json > summary.json
+```
+
+## Build
+
+```bash
+go build -o certinfo ./main.go
 ```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Contributing
 
-
-## Contribution
-
-Contributions are welcome! Please open an issue or create a pull request with your suggestions and improvements.
-
-## Contact
-
-For any questions or feedback, feel free to reach out to [marco@mintdev.me](mailto:marco@mintdev.me).
-
-Happy coding!
+Contributions are welcome! Please open an issue or submit a pull request.
