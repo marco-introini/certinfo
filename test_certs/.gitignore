@@ -1,0 +1,5 @@
+# Ignore all files in test_certs
+*
+# But keep these files
+!README.md
+!.gitignore
