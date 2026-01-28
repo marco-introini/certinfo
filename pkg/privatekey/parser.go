@@ -9,25 +9,41 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/marco-introini/certinfo/pkg/pem"
 )
 
 type KeyInfo struct {
-	Filename  string
-	Encoding  string
-	KeyType   string
-	Algorithm string
-	Bits      int
-	Curve     string
+	Filename      string
+	Encoding      string
+	KeyType       string
+	Algorithm     string
+	Bits          int
+	Curve         string
+	IsQuantumSafe bool
 }
 
 type KeySummary struct {
-	Filename string
-	Encoding string
-	KeyType  string
-	Bits     int
-	Curve    string
+	Filename      string
+	Encoding      string
+	KeyType       string
+	Bits          int
+	Curve         string
+	IsQuantumSafe bool
+}
+
+func isPQCCheck(algo string) bool {
+	lowerAlgo := strings.ToLower(algo)
+	return strings.Contains(lowerAlgo, "ml-kem") ||
+		strings.Contains(lowerAlgo, "ml-dsa") ||
+		strings.Contains(lowerAlgo, "slh-dsa") ||
+		strings.Contains(lowerAlgo, "fn-dsa") ||
+		strings.Contains(lowerAlgo, "falcon") ||
+		strings.Contains(lowerAlgo, "dilithium") ||
+		strings.Contains(lowerAlgo, "kyber") ||
+		strings.Contains(lowerAlgo, "sphincs") ||
+		strings.Contains(lowerAlgo, "rainbow")
 }
 
 func parsePrivateKeyData(data []byte, filename string) (*KeyInfo, error) {
@@ -39,7 +55,8 @@ func parsePrivateKeyData(data []byte, filename string) (*KeyInfo, error) {
 		keyBytes, ok = pem.FindBlock(data,
 			pem.TypeECPrivateKey,
 			pem.TypePrivateKey,
-			pem.TypeRSAPrivateKey)
+			pem.TypeRSAPrivateKey,
+			pem.TypeMLKEMPrivateKey)
 		if !ok {
 			return nil, fmt.Errorf("no private key found in %s", filename)
 		}
@@ -116,6 +133,31 @@ func parseKey(der []byte, filename string, encoding string) (*KeyInfo, error) {
 			info.Bits = 256
 			info.Algorithm = "EdDSA"
 			return info, nil
+		default:
+			typeName := fmt.Sprintf("%T", key)
+			info.KeyType = typeName
+			info.Algorithm = "PKCS#8"
+			if isPQCCheck(typeName) {
+				info.IsQuantumSafe = true
+				if strings.Contains(strings.ToLower(typeName), "mlkem") {
+					info.KeyType = "ML-KEM"
+					info.Algorithm = "ML-KEM"
+					info.Bits = 0
+				} else if strings.Contains(strings.ToLower(typeName), "mldsa") {
+					info.KeyType = "ML-DSA"
+					info.Algorithm = "ML-DSA"
+					info.Bits = 0
+				} else if strings.Contains(strings.ToLower(typeName), "slhdsa") {
+					info.KeyType = "SLH-DSA"
+					info.Algorithm = "SLH-DSA"
+					info.Bits = 0
+				} else if strings.Contains(strings.ToLower(typeName), "fndsa") {
+					info.KeyType = "FN-DSA"
+					info.Algorithm = "FN-DSA"
+					info.Bits = 0
+				}
+			}
+			return info, nil
 		}
 	}
 
@@ -148,11 +190,12 @@ func SummarizeDirectory(dirPath string) ([]KeySummary, error) {
 		}
 
 		summaries = append(summaries, KeySummary{
-			Filename: entry.Name(),
-			Encoding: key.Encoding,
-			KeyType:  key.KeyType,
-			Bits:     key.Bits,
-			Curve:    key.Curve,
+			Filename:      entry.Name(),
+			Encoding:      key.Encoding,
+			KeyType:       key.KeyType,
+			Bits:          key.Bits,
+			Curve:         key.Curve,
+			IsQuantumSafe: key.IsQuantumSafe,
 		})
 	}
 
@@ -179,11 +222,12 @@ func SummarizeDirectoryRecursive(dirPath string) ([]KeySummary, error) {
 		}
 
 		summaries = append(summaries, KeySummary{
-			Filename: relPath,
-			Encoding: key.Encoding,
-			KeyType:  key.KeyType,
-			Bits:     key.Bits,
-			Curve:    key.Curve,
+			Filename:      relPath,
+			Encoding:      key.Encoding,
+			KeyType:       key.KeyType,
+			Bits:          key.Bits,
+			Curve:         key.Curve,
+			IsQuantumSafe: key.IsQuantumSafe,
 		})
 
 		return nil

@@ -208,51 +208,51 @@ Il supporto post-quantum in `crypto/x509` è disponibile da Go 1.23. Go 1.25 lo 
 
 ### Modifiche al Parser Certificati
 
-### 27. Aggiornare `getKeyBitsAndType()` per PQC ⚠️ NON RISOLTO
-**File:** `pkg/certificate/parser.go:30`
+### 27. Aggiornare `getKeyBitsAndType()` per PQC ✅ COMPLETATO
+**File:** `pkg/certificate/parser.go:35`
 
-Aggiungere riconoscimento chiavi ML-KEM.
+Aggiungere riconoscimento chiavi ML-KEM tramite type switch.
 
-### 28. Aggiornare `CertificateInfo` per PQC ⚠️ NON RISOLTO
-**File:** `pkg/certificate/parser.go:14`
+### 28. Aggiornare `CertificateInfo` per PQC ✅ COMPLETATO
+**File:** `pkg/certificate/parser.go:17`
 
-Aggiungere campi per indicare resistenza quantistica.
+Aggiunti campi `IsQuantumSafe bool` e `PQCTypes []string`.
 
-### 29. Aggiornare parsing algoritmo firma PQC ⚠️ NON RISOLTO
-**File:** `pkg/certificate/parser.go:89`
+### 29. Aggiornare parsing algoritmo firma PQC ✅ COMPLETATO
+**File:** `pkg/certificate/parser.go:84`
 
-Il campo `Algorithm` deve riconoscere algoritmi PQC.
+Aggiunte funzioni `isPQCSignatureAlgorithmByName()` e `getPQCTypesFromAlgorithmName()` per riconoscere algoritmi PQC dal nome.
 
 ### Modifiche al Parser Chiavi Private
 
-### 30. Aggiornare `parseKey()` per chiavi PQC ⚠️ NON RISOLTO
-**File:** `pkg/privatekey/parser.go:98`
+### 30. Aggiornare `parseKey()` per chiavi PQC ✅ COMPLETATO
+**File:** `pkg/privatekey/parser.go:69`
 
-Aggiungere parsing per `mlkem.PrivateKey`.
+Aggiunto riconoscimento chiavi ML-KEM, ML-DSA, SLH-DSA, FN-DSA tramite type string detection.
 
 ### Modifiche all'Output
 
-### 31. Aggiornare `PrintCertificateInfo()` per PQC ⚠️ NON RISOLTO
-**File:** `pkg/utils/output.go:20`
+### 31. Aggiornare `PrintCertificateInfo()` per PQC ✅ COMPLETATO
+**File:** `pkg/utils/output.go:27`
 
-Aggiungere campo "Quantum Safe" nell'output.
+Aggiunto campo "Quantum Safe" e "PQC Types" nell'output.
 
-### 32. Aggiornare `PrintCertificateSummaries()` per PQC ⚠️ NON RISOLTO
-**File:** `pkg/utils/output.go:47`
+### 32. Aggiornare `PrintCertificateSummaries()` per PQC ✅ COMPLETATO
+**File:** `pkg/utils/output.go:58`
 
-Aggiungere colonna "Quantum Safe" nella tabella summary.
+Aggiunta colonna "QUANTUM SAFE" e "PQC TYPES" nella tabella summary.
 
 ### Modifiche all'Analyzer
 
-### 33. Aggiornare `CertificateSummary` per PQC ⚠️ NON RISOLTO
-**File:** `pkg/certificate/analyzer.go:9`
+### 33. Aggiornare `CertificateSummary` per PQC ✅ COMPLETATO
+**File:** `pkg/certificate/analyzer.go:22`
 
-Aggiungere campi PQC.
+Aggiunti campi `IsQuantumSafe bool` e `PQCTypes []string`.
 
-### 34. Aggiornare funzioni di summary per PQC ⚠️ NON RISOLTO
-**File:** `pkg/certificate/analyzer.go:17-59`, `pkg/certificate/analyzer.go:61-108`
+### 34. Aggiornare funzioni di summary per PQC ✅ COMPLETATO
+**File:** `pkg/certificate/analyzer.go:50`, `pkg/certificate/analyzer.go:83`
 
-Popolare i nuovi campi PQC.
+Popolati i nuovi campi PQC nelle summary.
 
 ### Test
 
@@ -338,6 +338,7 @@ Verificare problemi di sicurezza: key length, algoritmi deboli, estensioni risch
 |13 | CertificateInfo usa time.Time | `pkg/certificate/parser.go` | ✅ |
 |14 | Pre-allocazione slice summary | `pkg/certificate/analyzer.go`, `pkg/privatekey/parser.go` | ✅ |
 |15 | Flag -f e -r unificati in root | `cmd/root.go`, `cmd/*.go` | ✅ |
+|16 | **Supporto Post-Quantum Cryptography** | `pkg/certificate/parser.go`, `pkg/certificate/analyzer.go`, `pkg/privatekey/parser.go`, `pkg/utils/output.go` | ✅ |
 
 ### TODO rimanenti
 
@@ -345,5 +346,5 @@ Verificare problemi di sicurezza: key length, algoritmi deboli, estensioni risch
 - **Errori da sistemare**: 5 non risolti (6, 7-parziale, 8, 9, 10, 11, 13)
 - **Nice to have**: 5 non risolti (17, 19, 20, 23, 25)
 - **Test**: 2 risolti (21, 22)
-- **PQC**: 10 non risolti (27-36)
+- **PQC**: 6 completati (27-34), 2 non risolti (35-36)
 - **Funzionalità aggiuntive**: 4 non risolti (37-40)

@@ -357,11 +357,12 @@ func TestPrintKeySummaries(t *testing.T) {
 func TestPrintKeySummariesEmptyCurve(t *testing.T) {
 	summaries := []privatekey.KeySummary{
 		{
-			Filename: "rsa-key.key",
-			Encoding: "PEM",
-			KeyType:  "RSA",
-			Bits:     2048,
-			Curve:    "",
+			Filename:      "rsa-key.key",
+			Encoding:      "PEM",
+			KeyType:       "RSA",
+			Bits:          2048,
+			Curve:         "",
+			IsQuantumSafe: false,
 		},
 	}
 
@@ -370,8 +371,8 @@ func TestPrintKeySummariesEmptyCurve(t *testing.T) {
 	})
 
 	parts := strings.Fields(output)
-	lastPart := parts[len(parts)-1]
-	assert.Equal(t, "-", lastPart, "expected empty curve to be displayed as '-'")
+	secondLastPart := parts[len(parts)-2]
+	assert.Equal(t, "-", secondLastPart, "expected empty curve to be displayed as '-'")
 }
 
 func TestPrintKeySummariesJSONMarshalError(t *testing.T) {

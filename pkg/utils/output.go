@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -49,6 +50,10 @@ func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat
 	fmt.Fprintf(w, "Bits:\t%d\n", cert.Bits)
 	fmt.Fprintf(w, "Serial Number:\t%s\n", cert.SerialNumber)
 	fmt.Fprintf(w, "Is CA:\t%v\n", cert.IsCA)
+	fmt.Fprintf(w, "Quantum Safe:\t%v\n", cert.IsQuantumSafe)
+	if len(cert.PQCTypes) > 0 {
+		fmt.Fprintf(w, "PQC Types:\t%v\n", cert.PQCTypes)
+	}
 
 	if len(cert.SANs) > 0 {
 		fmt.Fprintf(w, "SANs:\t%v\n", cert.SANs)
@@ -69,10 +74,18 @@ func PrintCertificateSummaries(summaries []certificate.CertificateSummary, forma
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	defer w.Flush()
 
-	fmt.Fprintf(w, "FILENAME\tENCODING\tCN\tISSUER\tSTATUS\n")
+	fmt.Fprintf(w, "FILENAME\tENCODING\tCN\tISSUER\tSTATUS\tQUANTUM SAFE\tPQC TYPES\n")
 	for _, s := range summaries {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-			s.Filename, s.Encoding, s.CommonName, s.Issuer, s.Status)
+		pqcTypes := "-"
+		if len(s.PQCTypes) > 0 {
+			pqcTypes = strings.Join(s.PQCTypes, ", ")
+		}
+		quantumSafe := "No"
+		if s.IsQuantumSafe {
+			quantumSafe = "Yes"
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			s.Filename, s.Encoding, s.CommonName, s.Issuer, s.Status, quantumSafe, pqcTypes)
 	}
 }
 
@@ -95,6 +108,7 @@ func PrintKeyInfo(key *privatekey.KeyInfo, format OutputFormat) {
 	fmt.Fprintf(w, "Key Type:\t%s\n", key.KeyType)
 	fmt.Fprintf(w, "Algorithm:\t%s\n", key.Algorithm)
 	fmt.Fprintf(w, "Bits:\t%d\n", key.Bits)
+	fmt.Fprintf(w, "Quantum Safe:\t%v\n", key.IsQuantumSafe)
 	if key.Curve != "" {
 		fmt.Fprintf(w, "Curve:\t%s\n", key.Curve)
 	}
@@ -114,13 +128,17 @@ func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	defer w.Flush()
 
-	fmt.Fprintf(w, "FILENAME\tENCODING\tTYPE\tBITS\tCURVE\n")
+	fmt.Fprintf(w, "FILENAME\tENCODING\tTYPE\tBITS\tCURVE\tQUANTUM SAFE\n")
 	for _, s := range summaries {
 		curve := s.Curve
 		if curve == "" {
 			curve = "-"
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\n",
-			s.Filename, s.Encoding, s.KeyType, s.Bits, curve)
+		quantumSafe := "No"
+		if s.IsQuantumSafe {
+			quantumSafe = "Yes"
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\t%s\n",
+			s.Filename, s.Encoding, s.KeyType, s.Bits, curve, quantumSafe)
 	}
 }

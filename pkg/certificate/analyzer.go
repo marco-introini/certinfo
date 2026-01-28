@@ -20,11 +20,13 @@ func getCertStatus(notAfter time.Time) string {
 }
 
 type CertificateSummary struct {
-	Filename   string
-	Encoding   string
-	CommonName string
-	Issuer     string
-	Status     string
+	Filename      string
+	Encoding      string
+	CommonName    string
+	Issuer        string
+	Status        string
+	IsQuantumSafe bool
+	PQCTypes      []string
 }
 
 func SummarizeDirectory(dirPath string) ([]CertificateSummary, error) {
@@ -48,11 +50,13 @@ func SummarizeDirectory(dirPath string) ([]CertificateSummary, error) {
 		}
 
 		summary := CertificateSummary{
-			Filename:   entry.Name(),
-			Encoding:   cert.Encoding,
-			CommonName: cert.CommonName,
-			Issuer:     cert.Issuer,
-			Status:     getCertStatus(cert.NotAfter),
+			Filename:      entry.Name(),
+			Encoding:      cert.Encoding,
+			CommonName:    cert.CommonName,
+			Issuer:        cert.Issuer,
+			Status:        getCertStatus(cert.NotAfter),
+			IsQuantumSafe: cert.IsQuantumSafe,
+			PQCTypes:      cert.PQCTypes,
 		}
 
 		summaries = append(summaries, summary)
@@ -81,11 +85,13 @@ func SummarizeDirectoryRecursive(dirPath string) ([]CertificateSummary, error) {
 		}
 
 		summary := CertificateSummary{
-			Filename:   relPath,
-			Encoding:   cert.Encoding,
-			CommonName: cert.CommonName,
-			Issuer:     cert.Issuer,
-			Status:     getCertStatus(cert.NotAfter),
+			Filename:      relPath,
+			Encoding:      cert.Encoding,
+			CommonName:    cert.CommonName,
+			Issuer:        cert.Issuer,
+			Status:        getCertStatus(cert.NotAfter),
+			IsQuantumSafe: cert.IsQuantumSafe,
+			PQCTypes:      cert.PQCTypes,
 		}
 
 		summaries = append(summaries, summary)
