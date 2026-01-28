@@ -116,11 +116,7 @@ go test -v ./pkg/certificate/parser_test.go ./pkg/certificate/parser.go
 - Use tabs for indentation (gofmt default)
 
 ### Testing Patterns
-- Test file per implementation file: `parser.go` → `parser_test.go`
-- Helper function for test paths: `getTestCertPath(relPath string) string`
-- Test certificates in `test_certs/` directory with organized subdirectories
-- Use table-driven tests for multiple similar test cases
-- Test error cases (e.g., `TestParseCertificateNotFound`)
+See guidelines in @.ai/testing_guidelines.md
 
 ### CLI Commands (Cobra)
 - Root command in `cmd/root.go`
