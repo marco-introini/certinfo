@@ -21,6 +21,12 @@ const (
 
 const dateFormat = "2006-01-02 15:04:05"
 
+func init() {
+	if _, ok := os.LookupEnv("NO_COLOR"); !ok && os.Getenv("TERM") != "" {
+		ColorsEnabled = true
+	}
+}
+
 func formatDate(t time.Time) string {
 	return t.Format(dateFormat)
 }
@@ -60,6 +66,14 @@ func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat
 	}
 }
 
+func padRight(s string, width int) string {
+	vlen := VisibleLen(s)
+	if vlen >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-vlen)
+}
+
 func PrintCertificateSummaries(summaries []certificate.CertificateSummary, format OutputFormat) {
 	if format == FormatJSON {
 		jsonBytes, err := json.MarshalIndent(summaries, "", "  ")
@@ -71,21 +85,86 @@ func PrintCertificateSummaries(summaries []certificate.CertificateSummary, forma
 		return
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	defer w.Flush()
+	headers := []string{"FILENAME", "ENCODING", "CN", "ISSUER", "STATUS", "QUANTUM SAFE", "PQC TYPES"}
+	colWidths := make([]int, len(headers))
+	for i, h := range headers {
+		colWidths[i] = len(h)
+	}
 
-	fmt.Fprintf(w, "FILENAME\tENCODING\tCN\tISSUER\tSTATUS\tQUANTUM SAFE\tPQC TYPES\n")
 	for _, s := range summaries {
 		pqcTypes := "-"
 		if len(s.PQCTypes) > 0 {
 			pqcTypes = strings.Join(s.PQCTypes, ", ")
 		}
-		quantumSafe := "No"
-		if s.IsQuantumSafe {
-			quantumSafe = "Yes"
+		data := []string{s.Filename, s.Encoding, s.CommonName, s.Issuer, s.Status, "Yes", pqcTypes}
+		if !s.IsQuantumSafe {
+			data[5] = "No"
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			s.Filename, s.Encoding, s.CommonName, s.Issuer, s.Status, quantumSafe, pqcTypes)
+		for i, d := range data {
+			if len(d) > colWidths[i] {
+				colWidths[i] = len(d)
+			}
+		}
+	}
+
+	// Print headers
+	for i, h := range headers {
+		text := h
+		if ColorsEnabled {
+			text = Color(h, Bold+ColorCyan)
+		}
+		fmt.Print(padRight(text, colWidths[i]))
+		if i < len(headers)-1 {
+			fmt.Print("  ")
+		}
+	}
+	fmt.Println()
+
+	// Print rows
+	for _, s := range summaries {
+		pqcTypes := "-"
+		if len(s.PQCTypes) > 0 {
+			pqcTypes = strings.Join(s.PQCTypes, ", ")
+		}
+
+		status := s.Status
+		qs := "No"
+		if s.IsQuantumSafe {
+			qs = "Yes"
+		}
+
+		if ColorsEnabled {
+			switch s.Status {
+			case "valid":
+				status = Color(s.Status, ColorGreen)
+			case "expired":
+				status = Color(s.Status, ColorRed)
+			case "expiring":
+				status = Color(s.Status, ColorYellow)
+			}
+			if s.IsQuantumSafe {
+				qs = Color(qs, ColorGreen)
+			} else {
+				qs = Color(qs, ColorYellow)
+			}
+		}
+
+		row := []string{
+			padRight(s.Filename, colWidths[0]),
+			padRight(s.Encoding, colWidths[1]),
+			padRight(s.CommonName, colWidths[2]),
+			padRight(s.Issuer, colWidths[3]),
+			padRight(status, colWidths[4]),
+			padRight(qs, colWidths[5]),
+			padRight(pqcTypes, colWidths[6]),
+		}
+		for i, cell := range row {
+			fmt.Print(cell)
+			if i < len(row)-1 {
+				fmt.Print("  ")
+			}
+		}
+		fmt.Println()
 	}
 }
 
@@ -125,20 +204,77 @@ func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 		return
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	defer w.Flush()
+	headers := []string{"FILENAME", "ENCODING", "TYPE", "BITS", "CURVE", "QUANTUM SAFE"}
+	colWidths := make([]int, len(headers))
+	for i, h := range headers {
+		colWidths[i] = len(h)
+	}
 
-	fmt.Fprintf(w, "FILENAME\tENCODING\tTYPE\tBITS\tCURVE\tQUANTUM SAFE\n")
 	for _, s := range summaries {
 		curve := s.Curve
 		if curve == "" {
 			curve = "-"
 		}
-		quantumSafe := "No"
-		if s.IsQuantumSafe {
-			quantumSafe = "Yes"
+		bitsStr := fmt.Sprintf("%d", s.Bits)
+		qs := "Yes"
+		if !s.IsQuantumSafe {
+			qs = "No"
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\t%s\n",
-			s.Filename, s.Encoding, s.KeyType, s.Bits, curve, quantumSafe)
+		data := []string{s.Filename, s.Encoding, s.KeyType, bitsStr, curve, qs}
+		for i, d := range data {
+			if len(d) > colWidths[i] {
+				colWidths[i] = len(d)
+			}
+		}
+	}
+
+	// Print headers
+	for i, h := range headers {
+		text := h
+		if ColorsEnabled {
+			text = Color(h, Bold+ColorCyan)
+		}
+		fmt.Print(padRight(text, colWidths[i]))
+		if i < len(headers)-1 {
+			fmt.Print("  ")
+		}
+	}
+	fmt.Println()
+
+	// Print rows
+	for _, s := range summaries {
+		curve := s.Curve
+		if curve == "" {
+			curve = "-"
+		}
+
+		qs := "No"
+		if s.IsQuantumSafe {
+			qs = "Yes"
+		}
+
+		if ColorsEnabled {
+			if s.IsQuantumSafe {
+				qs = Color(qs, ColorGreen)
+			} else {
+				qs = Color(qs, ColorYellow)
+			}
+		}
+
+		row := []string{
+			padRight(s.Filename, colWidths[0]),
+			padRight(s.Encoding, colWidths[1]),
+			padRight(s.KeyType, colWidths[2]),
+			padRight(fmt.Sprintf("%d", s.Bits), colWidths[3]),
+			padRight(curve, colWidths[4]),
+			padRight(qs, colWidths[5]),
+		}
+		for i, cell := range row {
+			fmt.Print(cell)
+			if i < len(row)-1 {
+				fmt.Print("  ")
+			}
+		}
+		fmt.Println()
 	}
 }

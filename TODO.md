@@ -291,10 +291,24 @@ Verificare se una chiave privata corrisponde a un certificato (stesso subject, s
 
 Leggere file PKCS#12 con password opzionale, estrarre certificato e chiave privata.
 
-### 39. Colorazione output nel terminale ⚠️ NON RISOLTO
+### 39. Colorazione output nel terminale ✅ RISOLTO
 **File:** `pkg/utils/output.go`, `pkg/utils/colors.go`
 
 Aggiungere colori ANSI per migliorare leggibilità.
+
+**Risolto** - Creato `pkg/utils/colors.go` con:
+- Costanti colori ANSI (rosso, verde, giallo, ciano, blu, bold)
+- Funzione `Color()` per applicare colori al testo
+- Supporto per `NO_COLOR` environment variable
+- Flag `--no-color` per disabilitare colori
+- Colori automatici disabilitati quando stdout non è un terminale
+
+Colori applicati:
+- Intestazioni tabelle: ciano bold
+- Status "valid": verde
+- Status "expired": rosso
+- Status "expiring": giallo
+- Quantum Safe "Yes": verde, "No": giallo
 
 ### 40. Analisi sicurezza del certificato ⚠️ NON RISOLTO
 **File:** Nuovo `pkg/security/analyzer.go`, nuovo comando `cmd/audit.go`
@@ -307,7 +321,7 @@ Verificare problemi di sicurezza: key length, algoritmi deboli, estensioni risch
 |---|--------------|----------|------------|-------|
 | 37 | Confronto chiave-certificato | Alta | Media | ❌ |
 | 38 | Supporto PKCS#12 | Alta | Media | ❌ |
-| 39 | Colorazione output | Media | Bassa | ❌ |
+| 39 | Colorazione output | Media | Bassa | ✅ |
 | 40 | Analisi sicurezza | Alta | Media-Alta | ❌ |
 
 ---
@@ -347,4 +361,4 @@ Verificare problemi di sicurezza: key length, algoritmi deboli, estensioni risch
 - **Nice to have**: 5 non risolti (17, 19, 20, 23, 25)
 - **Test**: 2 risolti (21, 22)
 - **PQC**: 6 completati (27-34), 2 non risolti (35-36)
-- **Funzionalità aggiuntive**: 4 non risolti (37-40)
+- **Funzionalità aggiuntive**: 3 non risolti (37, 38, 40), 1 risolto (39)

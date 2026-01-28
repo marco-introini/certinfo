@@ -130,6 +130,10 @@ See guidelines in @.ai/testing_guidelines.md
 - Format selection via `OutputFormat` type (`FormatTable`, `FormatJSON`)
 - Consistent field ordering in struct definitions and output
 
+### External Dependencies
+
+Prioritize standard library and golang.org/x/ packages for system and terminal handling to minimize supply-chain risks.
+
 ## Project Overview
 
 - **Language**: Go 1.25
