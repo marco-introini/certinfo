@@ -1,7 +1,7 @@
 package main
 
 import (
-	"certinfo/cmd"
+	"github.com/marco-introini/certinfo/cmd"
 )
 
 func main() {

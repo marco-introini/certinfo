@@ -6,8 +6,8 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"certinfo/pkg/certificate"
-	"certinfo/pkg/privatekey"
+	"github.com/marco-introini/certinfo/pkg/certificate"
+	"github.com/marco-introini/certinfo/pkg/privatekey"
 )
 
 type OutputFormat string

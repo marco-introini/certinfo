@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"certinfo/pkg/pem"
+	"github.com/marco-introini/certinfo/pkg/pem"
 )
 
 type KeyInfo struct {

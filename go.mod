@@ -1,4 +1,4 @@
-module certinfo
+module github.com/marco-introini/certinfo
 
 go 1.25
 

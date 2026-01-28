@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"certinfo/pkg/certificate"
-	"certinfo/pkg/utils"
+	"github.com/marco-introini/certinfo/pkg/certificate"
+	"github.com/marco-introini/certinfo/pkg/utils"
 	"os"
 
 	"github.com/spf13/cobra"

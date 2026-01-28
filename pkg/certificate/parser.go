@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"certinfo/pkg/pem"
+	"github.com/marco-introini/certinfo/pkg/pem"
 )
 
 type CertificateInfo struct {
