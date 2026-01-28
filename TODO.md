@@ -333,8 +333,8 @@ Verificare problemi di sicurezza: key length, algoritmi deboli, estensioni risch
 
 ### TODO rimanenti
 
-- **Problemi critici**: 0 non risolti (tutti ✅)
-- **Errori da sistemare**: 0 non risolti (tutti ✅: 6, 7, 8, 9, 10, 11, 13)
+- **Problemi critici**: 0 non risolti (2, 3, 4, 5 sono ✅)
+- **Errori da sistemare**: 5 non risolti (6, 7-parziale, 8, 9, 10, 11, 13)
 - **Nice to have**: 7 non risolti (17, 19, 20, 21, 22, 23, 25)
 - **PQC**: 10 non risolti (27-36)
 - **Funzionalità aggiuntive**: 4 non risolti (37-40)

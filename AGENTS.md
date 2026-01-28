@@ -103,10 +103,11 @@ go test -v ./pkg/certificate/parser_test.go ./pkg/certificate/parser.go
 - Related functionality in same package
 - Tests in `<file>_test.go` alongside implementation
 - Package structure:
-  - `cmd/` - CLI command handlers (Cobra)
-  - `pkg/certificate/` - Certificate parsing and analysis
-  - `pkg/privatekey/` - Private key parsing
-  - `pkg/utils/` - Shared output formatting utilities
+  - `cmd/` - CLI command handlers (Cobra): root, cert, dir, key, keydir
+  - `pkg/certificate/` - Certificate parsing (parser.go) and analysis (analyzer.go)
+  - `pkg/privatekey/` - Private key parsing (parser.go)
+  - `pkg/pem/` - PEM format handling (pem.go)
+  - `pkg/utils/` - Shared output formatting utilities (output.go)
 
 ### Formatting
 - Use `gofmt` (default Go formatter)
@@ -135,7 +136,38 @@ go test -v ./pkg/certificate/parser_test.go ./pkg/certificate/parser.go
 
 ## Project Overview
 
-- **Language**: Go 1.21+
+- **Language**: Go 1.25
+- **Module**: `github.com/marco-introini/certinfo`
 - **Dependencies**: `github.com/spf13/cobra v1.8.0` for CLI
 - **Purpose**: CLI tool to analyze X.509 certificates and private keys
-- **Features**: Parse RSA, ECDSA, Ed25519 keys; support PEM/DER formats; directory scanning; table and JSON output
+- **Features**: Parse RSA, ECDSA, Ed25519, Ed448 keys; support PEM/DER formats; directory scanning; table and JSON output; 42+ tests
+
+## Package Structure
+
+- `main.go` - Entry point that calls `cmd.Execute()`
+- `cmd/` - CLI command handlers (Cobra)
+  - `root.go` - Root command with global flags (`format`, `recursive`)
+  - `cert.go` - Single certificate analysis
+  - `dir.go` - Directory certificate scanning
+  - `key.go` - Private key analysis
+  - `keydir.go` - Directory private key scanning
+- `pkg/certificate/` - Certificate parsing and analysis
+  - `parser.go` - X.509 certificate parsing
+  - `analyzer.go` - Certificate analysis (expiration, status)
+- `pkg/privatekey/` - Private key parsing
+  - `parser.go` - RSA, EC, Ed25519, Ed448 key parsing
+- `pkg/pem/` - PEM format handling
+  - `pem.go` - PEM block detection and decoding
+- `pkg/utils/` - Shared utilities
+  - `output.go` - Table and JSON output formatting
+
+## Test Certificates
+
+Located in `test_certs/` with organized subdirectories:
+- `traditional/rsa/` - RSA 2048, 3072, 4096
+- `traditional/ecdsa/` - P-256, P-384, P-521, Ed25519, Ed448
+- `selfsigned/` - Self-signed certificates
+- `expired/` - Expired certificates
+- `san-types/` - SAN extensions
+- `client/` - Client certificates (mTLS)
+- `wildcard/` - Wildcard certificates
