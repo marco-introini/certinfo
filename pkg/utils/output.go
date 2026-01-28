@@ -19,7 +19,11 @@ const (
 
 func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat) {
 	if format == FormatJSON {
-		jsonBytes, _ := json.MarshalIndent(cert, "", "  ")
+		jsonBytes, err := json.MarshalIndent(cert, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error marshaling JSON: %v\n", err)
+			return
+		}
 		fmt.Println(string(jsonBytes))
 		return
 	}
@@ -46,7 +50,11 @@ func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat
 
 func PrintCertificateSummaries(summaries []certificate.CertificateSummary, format OutputFormat) {
 	if format == FormatJSON {
-		jsonBytes, _ := json.MarshalIndent(summaries, "", "  ")
+		jsonBytes, err := json.MarshalIndent(summaries, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error marshaling JSON: %v\n", err)
+			return
+		}
 		fmt.Println(string(jsonBytes))
 		return
 	}
@@ -63,7 +71,11 @@ func PrintCertificateSummaries(summaries []certificate.CertificateSummary, forma
 
 func PrintKeyInfo(key *privatekey.KeyInfo, format OutputFormat) {
 	if format == FormatJSON {
-		jsonBytes, _ := json.MarshalIndent(key, "", "  ")
+		jsonBytes, err := json.MarshalIndent(key, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error marshaling JSON: %v\n", err)
+			return
+		}
 		fmt.Println(string(jsonBytes))
 		return
 	}
@@ -83,7 +95,11 @@ func PrintKeyInfo(key *privatekey.KeyInfo, format OutputFormat) {
 
 func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 	if format == FormatJSON {
-		jsonBytes, _ := json.MarshalIndent(summaries, "", "  ")
+		jsonBytes, err := json.MarshalIndent(summaries, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error marshaling JSON: %v\n", err)
+			return
+		}
 		fmt.Println(string(jsonBytes))
 		return
 	}

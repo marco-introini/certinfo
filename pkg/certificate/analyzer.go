@@ -6,6 +6,23 @@ import (
 	"time"
 )
 
+const dateFormat = "2006-01-02 15:04:05"
+
+func getCertStatus(notAfterStr string) string {
+	notAfter, err := time.Parse(dateFormat, notAfterStr)
+	if err != nil {
+		return "unknown"
+	}
+	daysUntil := int(time.Until(notAfter).Hours() / 24)
+
+	if daysUntil < 0 {
+		return "expired"
+	} else if daysUntil < 30 {
+		return "expiring soon"
+	}
+	return "valid"
+}
+
 type CertificateSummary struct {
 	Filename   string
 	Encoding   string
@@ -39,17 +56,7 @@ func SummarizeDirectory(dirPath string) ([]CertificateSummary, error) {
 			Encoding:   cert.Encoding,
 			CommonName: cert.CommonName,
 			Issuer:     cert.Issuer,
-		}
-
-		notAfter, _ := time.Parse("2006-01-02 15:04:05", cert.NotAfter)
-		daysUntil := int(time.Until(notAfter).Hours() / 24)
-
-		if daysUntil < 0 {
-			summary.Status = "expired"
-		} else if daysUntil < 30 {
-			summary.Status = "expiring soon"
-		} else {
-			summary.Status = "valid"
+			Status:     getCertStatus(cert.NotAfter),
 		}
 
 		summaries = append(summaries, summary)
@@ -82,17 +89,7 @@ func SummarizeDirectoryRecursive(dirPath string) ([]CertificateSummary, error) {
 			Encoding:   cert.Encoding,
 			CommonName: cert.CommonName,
 			Issuer:     cert.Issuer,
-		}
-
-		notAfter, _ := time.Parse("2006-01-02 15:04:05", cert.NotAfter)
-		daysUntil := int(time.Until(notAfter).Hours() / 24)
-
-		if daysUntil < 0 {
-			summary.Status = "expired"
-		} else if daysUntil < 30 {
-			summary.Status = "expiring soon"
-		} else {
-			summary.Status = "valid"
+			Status:     getCertStatus(cert.NotAfter),
 		}
 
 		summaries = append(summaries, summary)

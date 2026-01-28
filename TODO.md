@@ -11,25 +11,33 @@ Il risultato di `pem.Decode()` ha un secondo valore di ritorno (`rest`) che vien
 
 **Risolto** con la creazione di `pkg/pem/pem.go` che fornisce `FindBlock()` che gestisce correttamente tutti i blocchi PEM.
 
-### 2. Parsing duplicato PKCS8 - sovrascrive errori ⚠️ NON RISOLTO
+### 2. Parsing duplicato PKCS8 - sovrascrive errori ✅ RISOLTO
 **File:** `pkg/privatekey/parser.go:109`, `pkg/privatekey/parser.go:128`
 
 `ParsePKCS8PrivateKey` viene chiamato due volte con gli stessi dati. La prima chiamata sovrascrive l'errore della chiamata a `ParsePKCS1PrivateKey`, rendendo impossibile distinguere quale parser ha fallito.
 
-### 3. Tipo di chiave sconosciuta - potenziale panic ⚠️ NON RISOLTO
+**Risolto** - Rimossa la prima chiamata duplicata. Ora `ParsePKCS8PrivateKey` viene chiamata una sola volta con type switch completo per tutti i tipi di chiave (RSA, EC, Ed25519).
+
+### 3. Tipo di chiave sconosciuta - potenziale panic ✅ RISOLTO
 **File:** `pkg/privatekey/parser.go:162`
 
 Quando nessun parser ha successo, `pkcs8Key` potrebbe essere `nil` se `ParsePKCS8PrivateKey` ha fallito, causando un panic con `fmt.Sprintf("%T", nil)`.
 
-### 4. Errori ignorati in `time.Parse` - status certificato errato ⚠️ NON RISOLTO
+**Risolto** - Aggiunto controllo `if pkcs8Key != nil` prima di chiamare `fmt.Sprintf("%T", pkcs8Key)` per prevenire il panic.
+
+### 4. Errori ignorati in `time.Parse` - status certificato errato ✅ RISOLTO
 **File:** `pkg/certificate/analyzer.go:44`, `pkg/certificate/analyzer.go:87`
 
 Il parsing della data potrebbe fallire silenziosamente. Gli errori vengono ignorati con `_`, portando a calcoli di status errati.
 
-### 5. Errori ignorati in `json.MarshalIndent` - nessun output su errore ⚠️ NON RISOLTO
+**Risolto** - Creata funzione helper `getCertStatus()` che gestisce correttamente l'errore del parsing. Restituisce `"unknown"` se il parsing della data fallisce.
+
+### 5. Errori ignorati in `json.MarshalIndent` - nessun output su errore ✅ RISOLTO
 **File:** `pkg/utils/output.go:22`, `pkg/utils/output.go:49`, `pkg/utils/output.go:66`, `pkg/utils/output.go:86`
 
 Gli errori di marshaling JSON vengono ignorati. Se il marshaling fallisce, non c'è output e l'errore è invisibile.
+
+**Risolto** - Gestiti gli errori in tutte le 4 funzioni `Print*`. Gli errori vengono stampati su stderr e la funzione ritorna.
 
 ---
 
@@ -42,10 +50,12 @@ Questi problemi non causano crash ma rappresentano bug, code smell, o mancanza d
 
 Il valore 30 per i giorni di scadenza è hardcoded. Difficile da mantenere e modificare.
 
-### 7. Magic string per formato data ripetuta ⚠️ NON RISOLTO
+### 7. Magic string per formato data ripetuta ✅ RISOLTO (parzialmente)
 **File:** `pkg/certificate/parser.go:87-88`, `pkg/certificate/parser.go:128-129`, `pkg/certificate/analyzer.go:44`, `pkg/certificate/analyzer.go:87`
 
 Il formato data è ripetuto come stringa in 4 posizioni. Una costante migliora la manutenibilità.
+
+**Risolto parzialmente** - Aggiunta costante `dateFormat` in `pkg/certificate/analyzer.go`. Le costanti in `parser.go` sono ancora hardcoded.
 
 ### 8. Errori wrapping con `%w` invece di `%v` ⚠️ NON RISOLTO
 **File:** `pkg/certificate/parser.go:68`, `pkg/certificate/parser.go:110`, `pkg/privatekey/parser.go:60`, `pkg/privatekey/parser.go:88`
@@ -99,10 +109,12 @@ La logica per determinare se un file è PEM e decodificarlo è ripetuta 4 volte.
 
 **Risolto** - Unificato in `pkg/pem/pem.go`.
 
-### 16. Logica di calcolo status duplicata ⚠️ NON RISOLTO
+### 16. Logica di calcolo status duplicata ✅ RISOLTO
 **File:** `pkg/certificate/analyzer.go:44-53`, `pkg/certificate/analyzer.go:87-96`
 
 Il calcolo dello stato del certificato è duplicato. Creare una funzione helper.
+
+**Risolto** - Creata funzione helper `getCertStatus()` che calcola lo stato del certificato in modo centralizzato.
 
 ### 17. Magic string per header tabella ⚠️ NON RISOLTO
 **File:** `pkg/utils/output.go:57`, `pkg/utils/output.go:94`
@@ -291,10 +303,21 @@ Verificare problemi di sicurezza: key length, algoritmi deboli, estensioni risch
 | 3 | Refactoring `pkg/certificate/parser.go` | `pkg/certificate/parser.go` | ✅ |
 | 4 | Refactoring `pkg/privatekey/parser.go` | `pkg/privatekey/parser.go` | ✅ |
 
+### Modifiche recenti (gennaio 2026)
+
+| # | Modifica | File | Stato |
+|---|----------|------|-------|
+| 5 | Fix parsing duplicato PKCS8 | `pkg/privatekey/parser.go` | ✅ |
+| 6 | Fix potenziale panic chiave sconosciuta | `pkg/privatekey/parser.go` | ✅ |
+| 7 | Fix errori ignorati time.Parse | `pkg/certificate/analyzer.go` | ✅ |
+| 8 | Fix errori ignorati json.MarshalIndent | `pkg/utils/output.go` | ✅ |
+| 9 | Aggiunta costante dateFormat | `pkg/certificate/analyzer.go` | ✅ |
+|10 | Unificazione logica status con getCertStatus() | `pkg/certificate/analyzer.go` | ✅ |
+
 ### TODO rimanenti
 
-- **Problemi critici**: 4 non risolti (2, 3, 4, 5)
-- **Errori da sistemare**: 7 non risolti (6, 7, 8, 9, 10, 11, 13)
-- **Nice to have**: 10 non risolti (16, 17, 19, 20, 21, 22, 23, 25)
+- **Problemi critici**: 0 non risolti (2, 3, 4, 5 sono ✅)
+- **Errori da sistemare**: 5 non risolti (6, 7-parziale, 8, 9, 10, 11, 13)
+- **Nice to have**: 7 non risolti (17, 19, 20, 21, 22, 23, 25)
 - **PQC**: 10 non risolti (27-36)
 - **Funzionalità aggiuntive**: 4 non risolti (37-40)

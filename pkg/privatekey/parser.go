@@ -76,16 +76,6 @@ func parseKey(der []byte, filename string, encoding string) (*KeyInfo, error) {
 		return info, nil
 	}
 
-	rsaKey, err := x509.ParsePKCS8PrivateKey(der)
-	if err == nil {
-		if key, ok := rsaKey.(*rsa.PrivateKey); ok {
-			info.KeyType = "RSA"
-			info.Bits = key.N.BitLen()
-			info.Algorithm = "PKCS#8"
-			return info, nil
-		}
-	}
-
 	ecKey, err := x509.ParseECPrivateKey(der)
 	if err == nil {
 		info.KeyType = "EC"
@@ -129,7 +119,11 @@ func parseKey(der []byte, filename string, encoding string) (*KeyInfo, error) {
 		}
 	}
 
-	info.KeyType = fmt.Sprintf("%T", pkcs8Key)
+	if pkcs8Key != nil {
+		info.KeyType = fmt.Sprintf("%T", pkcs8Key)
+	} else {
+		info.KeyType = fmt.Sprintf("%T", pkcs8Key)
+	}
 	return info, nil
 }
 
