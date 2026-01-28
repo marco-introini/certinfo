@@ -33,7 +33,6 @@ var keydirCmd = &cobra.Command{
 }
 
 func init() {
-	keydirCmd.Flags().StringVarP(&format, "format", "f", "table", "Output format (table, json)")
 	keydirCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "Search recursively")
 	rootCmd.AddCommand(keydirCmd)
 }

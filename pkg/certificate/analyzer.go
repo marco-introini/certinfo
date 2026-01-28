@@ -6,18 +6,14 @@ import (
 	"time"
 )
 
-const dateFormat = "2006-01-02 15:04:05"
+const daysUntilExpiring = 30
 
-func getCertStatus(notAfterStr string) string {
-	notAfter, err := time.Parse(dateFormat, notAfterStr)
-	if err != nil {
-		return "unknown"
-	}
+func getCertStatus(notAfter time.Time) string {
 	daysUntil := int(time.Until(notAfter).Hours() / 24)
 
 	if daysUntil < 0 {
 		return "expired"
-	} else if daysUntil < 30 {
+	} else if daysUntil < daysUntilExpiring {
 		return "expiring soon"
 	}
 	return "valid"
@@ -32,12 +28,12 @@ type CertificateSummary struct {
 }
 
 func SummarizeDirectory(dirPath string) ([]CertificateSummary, error) {
-	var summaries []CertificateSummary
-
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
+
+	summaries := make([]CertificateSummary, 0, len(entries))
 
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -66,7 +62,7 @@ func SummarizeDirectory(dirPath string) ([]CertificateSummary, error) {
 }
 
 func SummarizeDirectoryRecursive(dirPath string) ([]CertificateSummary, error) {
-	var summaries []CertificateSummary
+	summaries := make([]CertificateSummary, 0, 32)
 
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

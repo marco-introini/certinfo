@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/marco-introini/certinfo/pkg/pem"
 )
@@ -17,8 +18,8 @@ type CertificateInfo struct {
 	CommonName   string
 	Issuer       string
 	Subject      string
-	NotBefore    string
-	NotAfter     string
+	NotBefore    time.Time
+	NotAfter     time.Time
 	Algorithm    string
 	KeyType      string
 	Bits         int
@@ -77,8 +78,8 @@ func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error
 		CommonName:   cert.Subject.CommonName,
 		Issuer:       cert.Issuer.CommonName,
 		Subject:      cert.Subject.String(),
-		NotBefore:    cert.NotBefore.Format("2006-01-02 15:04:05"),
-		NotAfter:     cert.NotAfter.Format("2006-01-02 15:04:05"),
+		NotBefore:    cert.NotBefore,
+		NotAfter:     cert.NotAfter,
 		Algorithm:    cert.SignatureAlgorithm.String(),
 		SerialNumber: cert.SerialNumber.String(),
 		IsCA:         cert.IsCA,

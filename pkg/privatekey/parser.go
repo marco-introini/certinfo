@@ -160,7 +160,7 @@ func SummarizeDirectory(dirPath string) ([]KeySummary, error) {
 }
 
 func SummarizeDirectoryRecursive(dirPath string) ([]KeySummary, error) {
-	var summaries []KeySummary
+	summaries := make([]KeySummary, 0, 32)
 
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

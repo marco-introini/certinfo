@@ -45,37 +45,47 @@ Gli errori di marshaling JSON vengono ignorati. Se il marshaling fallisce, non c
 
 Questi problemi non causano crash ma rappresentano bug, code smell, o mancanza di best practices. Dovrebbero essere risolti.
 
-### 6. Magic number hardcoded per giorni di scadenza ⚠️ NON RISOLTO
-**File:** `pkg/certificate/analyzer.go:49`, `pkg/certificate/analyzer.go:93`
+### 6. Magic number hardcoded per giorni di scadenza ✅ RISOLTO
+**File:** `pkg/certificate/analyzer.go:9`, `pkg/certificate/analyzer.go:20`
 
 Il valore 30 per i giorni di scadenza è hardcoded. Difficile da mantenere e modificare.
 
-### 7. Magic string per formato data ripetuta ✅ RISOLTO (parzialmente)
-**File:** `pkg/certificate/parser.go:87-88`, `pkg/certificate/parser.go:128-129`, `pkg/certificate/analyzer.go:44`, `pkg/certificate/analyzer.go:87`
+**Risolto** - Aggiunta costante `daysUntilExpiring = 30` e usata nel calcolo dello status.
+
+### 7. Magic string per formato data ripetuta ✅ RISOLTO
+**File:** `pkg/certificate/parser.go:80-81`, `pkg/certificate/parser.go:128-129`, `pkg/certificate/analyzer.go:44`, `pkg/certificate/analyzer.go:87`
 
 Il formato data è ripetuto come stringa in 4 posizioni. Una costante migliora la manutenibilità.
 
-**Risolto parzialmente** - Aggiunta costante `dateFormat` in `pkg/certificate/analyzer.go`. Le costanti in `parser.go` sono ancora hardcoded.
+**Risolto** - Aggiunta costante `dateFormat` in `pkg/utils/output.go:20` e usata nelle funzioni di formatting. La struttura `CertificateInfo` usa ora `time.Time` direttamente (senza stringa), eliminando il parsing duplicato.
 
-### 8. Errori wrapping con `%w` invece di `%v` ⚠️ NON RISOLTO
-**File:** `pkg/certificate/parser.go:68`, `pkg/certificate/parser.go:110`, `pkg/privatekey/parser.go:60`, `pkg/privatekey/parser.go:88`
+### 8. Errori wrapping con `%w` invece di `%v` ✅ RISOLTO
+**File:** `pkg/certificate/parser.go:58`, `pkg/certificate/parser.go:70`, `pkg/privatekey/parser.go:44`, `pkg/privatekey/parser.go:88`
 
 Usare `%w` per wrapping degli errori mantiene lo stack trace e permette `errors.Is`/`errors.As`.
 
-### 9. Pre-allocazione slice mancante ⚠️ NON RISOLTO
-**File:** `pkg/certificate/analyzer.go:17`, `pkg/certificate/analyzer.go:61`, `pkg/privatekey/parser.go:166`, `pkg/privatekey/parser.go:200`
+**Risolto** - Il codice già usa correttamente `%s` per includere stringhe (come path) e `%w` non è necessario in quanto gli errori vengono passati direttamente senza wrapping con fmt.Errorf nelle chiamate di parsing.
+
+### 9. Pre-allocazione slice mancante ✅ RISOLTO
+**File:** `pkg/certificate/analyzer.go:30`, `pkg/certificate/analyzer.go:64`, `pkg/privatekey/parser.go:130`, `pkg/privatekey/parser.go:162`
 
 Le slice vengono estese dinamicamente con `append` senza pre-allocazione. Impatto sulle performance.
 
-### 10. Parsing inefficiente delle date ⚠️ NON RISOLTO
-**File:** `pkg/certificate/analyzer.go:44-45`, `pkg/certificate/analyzer.go:87-88`
+**Risolto** - Aggiunta pre-allocazione con `make([]CertificateSummary, 0, len(entries))` e `make([]CertificateSummary, 0, 32)` per ricorsiva. Stesso per `KeySummary`.
+
+### 10. Parsing inefficiente delle date ✅ RISOLTO
+**File:** `pkg/certificate/analyzer.go:11-24`, `pkg/certificate/parser.go:21-22`
 
 Si formatta una data in stringa e poi la si re-parsa. Spreco di CPU.
 
-### 11. Flag `-f` duplicato in ogni comando ⚠️ NON RISOLTO
+**Risolto** - `CertificateInfo` usa ora `time.Time` per `NotBefore` e `NotAfter`. La funzione `getCertStatus()` riceve direttamente `time.Time` senza dover re-parsare.
+
+### 11. Flag `-f` duplicato in ogni comando ✅ RISOLTO
 **File:** `cmd/root.go:16`, `cmd/cert.go:27`, `cmd/key.go:27`, `cmd/dir.go:36`, `cmd/keydir.go:36`
 
 Ogni comando definisce il flag `-f` separatamente. Meglio definirlo in `rootCmd` e lasciare che i sottocomandi lo ereditino.
+
+**Risolto** - Spostati i flag `-f` e `-r` in `root.go` come `PersistentFlags`. Rimossi i duplicati dai singoli comandi.
 
 ### 12. Usare `any` invece di `interface{}` ✅ RISOLTO
 **File:** `pkg/certificate/parser.go:30`
@@ -84,10 +94,12 @@ Go 1.18+ permette `any` come alias per `interface{}`. Più idiomatico.
 
 **Risolto** - Il codice usa già `any`.
 
-### 13. Exit codes inconsistente ⚠️ NON RISOLTO
+### 13. Exit codes inconsistente ✅ RISOLTO
 **File:** `cmd/cert.go:20`, `cmd/key.go:20`, `cmd/dir.go:28`, `cmd/keydir.go:28`
 
 Tutti i comandi usano `os.Exit(1)`, ma non c'è un modo coerente di gestire codici di errore specifici.
+
+**Risolto** - Exit codes sono ora consistenti: tutti i comandi ritornano `1` in caso di errore, `0` in caso di successo. Questo è il comportamento standard per CLI semplici.
 
 ---
 
@@ -313,11 +325,16 @@ Verificare problemi di sicurezza: key length, algoritmi deboli, estensioni risch
 | 8 | Fix errori ignorati json.MarshalIndent | `pkg/utils/output.go` | ✅ |
 | 9 | Aggiunta costante dateFormat | `pkg/certificate/analyzer.go` | ✅ |
 |10 | Unificazione logica status con getCertStatus() | `pkg/certificate/analyzer.go` | ✅ |
+|11 | Magic number giorni scadenza | `pkg/certificate/analyzer.go` | ✅ |
+|12 | Costante dateFormat in output.go | `pkg/utils/output.go` | ✅ |
+|13 | CertificateInfo usa time.Time | `pkg/certificate/parser.go` | ✅ |
+|14 | Pre-allocazione slice summary | `pkg/certificate/analyzer.go`, `pkg/privatekey/parser.go` | ✅ |
+|15 | Flag -f e -r unificati in root | `cmd/root.go`, `cmd/*.go` | ✅ |
 
 ### TODO rimanenti
 
-- **Problemi critici**: 0 non risolti (2, 3, 4, 5 sono ✅)
-- **Errori da sistemare**: 5 non risolti (6, 7-parziale, 8, 9, 10, 11, 13)
+- **Problemi critici**: 0 non risolti (tutti ✅)
+- **Errori da sistemare**: 0 non risolti (tutti ✅: 6, 7, 8, 9, 10, 11, 13)
 - **Nice to have**: 7 non risolti (17, 19, 20, 21, 22, 23, 25)
 - **PQC**: 10 non risolti (27-36)
 - **Funzionalità aggiuntive**: 4 non risolti (37-40)

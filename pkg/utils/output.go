@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/marco-introini/certinfo/pkg/certificate"
 	"github.com/marco-introini/certinfo/pkg/privatekey"
@@ -16,6 +17,12 @@ const (
 	FormatTable OutputFormat = "table"
 	FormatJSON  OutputFormat = "json"
 )
+
+const dateFormat = "2006-01-02 15:04:05"
+
+func formatDate(t time.Time) string {
+	return t.Format(dateFormat)
+}
 
 func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat) {
 	if format == FormatJSON {
@@ -36,8 +43,8 @@ func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat
 	fmt.Fprintf(w, "Common Name:\t%s\n", cert.CommonName)
 	fmt.Fprintf(w, "Issuer:\t%s\n", cert.Issuer)
 	fmt.Fprintf(w, "Subject:\t%s\n", cert.Subject)
-	fmt.Fprintf(w, "Not Before:\t%s\n", cert.NotBefore)
-	fmt.Fprintf(w, "Not After:\t%s\n", cert.NotAfter)
+	fmt.Fprintf(w, "Not Before:\t%s\n", formatDate(cert.NotBefore))
+	fmt.Fprintf(w, "Not After:\t%s\n", formatDate(cert.NotAfter))
 	fmt.Fprintf(w, "Algorithm:\t%s\n", cert.Algorithm)
 	fmt.Fprintf(w, "Bits:\t%d\n", cert.Bits)
 	fmt.Fprintf(w, "Serial Number:\t%s\n", cert.SerialNumber)

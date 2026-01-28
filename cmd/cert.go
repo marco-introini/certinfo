@@ -24,6 +24,5 @@ var certCmd = &cobra.Command{
 }
 
 func init() {
-	certCmd.Flags().StringVarP(&format, "format", "f", "table", "Output format (table, json)")
 	rootCmd.AddCommand(certCmd)
 }

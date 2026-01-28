@@ -24,6 +24,5 @@ var keyCmd = &cobra.Command{
 }
 
 func init() {
-	keyCmd.Flags().StringVarP(&format, "format", "f", "table", "Output format (table, json)")
 	rootCmd.AddCommand(keyCmd)
 }

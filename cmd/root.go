@@ -22,3 +22,8 @@ func Execute() {
 		os.Exit(1)
 	}
 }
+
+func init() {
+	rootCmd.PersistentFlags().StringVarP(&format, "format", "f", "table", "Output format (table, json)")
+	rootCmd.PersistentFlags().BoolVarP(&recursive, "recursive", "r", false, "Search recursively")
+}

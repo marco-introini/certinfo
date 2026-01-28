@@ -33,7 +33,6 @@ var dirCmd = &cobra.Command{
 }
 
 func init() {
-	dirCmd.Flags().StringVarP(&format, "format", "f", "table", "Output format (table, json)")
 	dirCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "Search recursively")
 	rootCmd.AddCommand(dirCmd)
 }
