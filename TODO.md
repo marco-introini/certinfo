@@ -150,14 +150,22 @@ Nessun uso di `context.Context`. Per operazioni ricorsive, permettere cancellazi
 
 I percorsi potrebbero beneficiare di normalizzazione.
 
-### 21. Copertura test insufficiente ⚠️ NON RISOLTO
+### 21. Copertura test insufficiente ✅ RISOLTO
 Non sono stati trovati test per `cmd/` e `pkg/utils/`.
 
-### 22. Test per casi edge mancanti ⚠️ NON RISOLTO
+**Risolto** - Aggiunti test per:
+- `cmd/cmd_test.go`: Test per tutti i comandi CLI (cert, key, dir, keydir) con formato table e JSON
+- `pkg/utils/output_test.go`: Test per tutte le funzioni di output con table e JSON
+
+### 22. Test per casi edge mancanti ✅ RISOLTO
 - File vuoti
 - File corrotti
 - File con encoding misto
 - Chiavi criptate (con password)
+
+**Risolto** - Aggiunti test edge in:
+- `pkg/certificate/parser_test.go`: Test per file vuoti, PEM non validi, dati corrotti
+- `pkg/privatekey/parser_test.go`: Test per file vuoti, dati garbage
 
 ### 23. Commenti godoc mancanti ⚠️ NON RISOLTO
 Aggiungere commenti godoc per le funzioni pubbliche.
@@ -335,6 +343,7 @@ Verificare problemi di sicurezza: key length, algoritmi deboli, estensioni risch
 
 - **Problemi critici**: 0 non risolti (2, 3, 4, 5 sono ✅)
 - **Errori da sistemare**: 5 non risolti (6, 7-parziale, 8, 9, 10, 11, 13)
-- **Nice to have**: 7 non risolti (17, 19, 20, 21, 22, 23, 25)
+- **Nice to have**: 5 non risolti (17, 19, 20, 23, 25)
+- **Test**: 2 risolti (21, 22)
 - **PQC**: 10 non risolti (27-36)
 - **Funzionalità aggiuntive**: 4 non risolti (37-40)
