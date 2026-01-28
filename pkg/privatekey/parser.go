@@ -1,16 +1,16 @@
 package privatekey
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"certinfo/pkg/pem"
 )
 
 type KeyInfo struct {
@@ -30,8 +30,26 @@ type KeySummary struct {
 	Curve    string
 }
 
-func isPEM(data []byte) bool {
-	return bytes.HasPrefix(data, []byte("-----BEGIN"))
+func parsePrivateKeyData(data []byte, filename string) (*KeyInfo, error) {
+	var keyBytes []byte
+	var encoding string
+
+	if pem.IsPEM(data) {
+		var ok bool
+		keyBytes, ok = pem.FindBlock(data,
+			pem.TypeECPrivateKey,
+			pem.TypePrivateKey,
+			pem.TypeRSAPrivateKey)
+		if !ok {
+			return nil, fmt.Errorf("no private key found in %s", filename)
+		}
+		encoding = "PEM"
+	} else {
+		keyBytes = data
+		encoding = "DER"
+	}
+
+	return parseKey(keyBytes, filename, encoding)
 }
 
 func ParsePrivateKey(filePath string) (*KeyInfo, error) {
@@ -40,59 +58,11 @@ func ParsePrivateKey(filePath string) (*KeyInfo, error) {
 		return nil, err
 	}
 
-	var keyBytes []byte
-	var encoding string
-
-	if isPEM(data) {
-		for {
-			block, rest := pem.Decode(data)
-			if block == nil {
-				break
-			}
-			if block.Type == "EC PRIVATE KEY" || block.Type == "PRIVATE KEY" || block.Type == "RSA PRIVATE KEY" {
-				keyBytes = block.Bytes
-				encoding = "PEM"
-				break
-			}
-			data = rest
-		}
-		if keyBytes == nil {
-			return nil, fmt.Errorf("no private key found in %s", filePath)
-		}
-	} else {
-		keyBytes = data
-		encoding = "DER"
-	}
-
-	return parseKey(keyBytes, filePath, encoding)
+	return parsePrivateKeyData(data, filePath)
 }
 
 func ParsePrivateKeyFromBytes(data []byte, filename string) (*KeyInfo, error) {
-	var keyBytes []byte
-	var encoding string
-
-	if isPEM(data) {
-		for {
-			block, rest := pem.Decode(data)
-			if block == nil {
-				break
-			}
-			if block.Type == "EC PRIVATE KEY" || block.Type == "PRIVATE KEY" || block.Type == "RSA PRIVATE KEY" {
-				keyBytes = block.Bytes
-				encoding = "PEM"
-				break
-			}
-			data = rest
-		}
-		if keyBytes == nil {
-			return nil, fmt.Errorf("no private key found")
-		}
-	} else {
-		keyBytes = data
-		encoding = "DER"
-	}
-
-	return parseKey(keyBytes, filename, encoding)
+	return parsePrivateKeyData(data, filename)
 }
 
 func parseKey(der []byte, filename string, encoding string) (*KeyInfo, error) {
@@ -164,12 +134,12 @@ func parseKey(der []byte, filename string, encoding string) (*KeyInfo, error) {
 }
 
 func SummarizeDirectory(dirPath string) ([]KeySummary, error) {
-	var summaries []KeySummary
-
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
+
+	summaries := make([]KeySummary, 0, len(entries))
 
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -183,15 +153,13 @@ func SummarizeDirectory(dirPath string) ([]KeySummary, error) {
 			continue
 		}
 
-		summary := KeySummary{
+		summaries = append(summaries, KeySummary{
 			Filename: entry.Name(),
 			Encoding: key.Encoding,
 			KeyType:  key.KeyType,
 			Bits:     key.Bits,
 			Curve:    key.Curve,
-		}
-
-		summaries = append(summaries, summary)
+		})
 	}
 
 	return summaries, nil
@@ -216,15 +184,13 @@ func SummarizeDirectoryRecursive(dirPath string) ([]KeySummary, error) {
 			return nil
 		}
 
-		summary := KeySummary{
+		summaries = append(summaries, KeySummary{
 			Filename: relPath,
 			Encoding: key.Encoding,
 			KeyType:  key.KeyType,
 			Bits:     key.Bits,
 			Curve:    key.Curve,
-		}
-
-		summaries = append(summaries, summary)
+		})
 
 		return nil
 	})

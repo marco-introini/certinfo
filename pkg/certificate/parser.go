@@ -1,14 +1,14 @@
 package certificate
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"os"
+
+	"certinfo/pkg/pem"
 )
 
 type CertificateInfo struct {
@@ -47,35 +47,28 @@ func getKeyBitsAndType(pub any) (string, int) {
 	}
 }
 
-func isPEM(data []byte) bool {
-	return bytes.HasPrefix(data, []byte("-----BEGIN"))
-}
-
-func ParseCertificate(filePath string) (*CertificateInfo, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
+func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error) {
 	var cert *x509.Certificate
-	var parseErr error
-
 	var encoding string
 
-	if isPEM(data) {
-		block, _ := pem.Decode(data)
-		if block == nil {
-			return nil, fmt.Errorf("no PEM data found in %s", filePath)
+	if pem.IsPEM(data) {
+		certBytes, ok := pem.FindBlock(data, pem.TypeCertificate)
+		if !ok {
+			return nil, fmt.Errorf("no certificate found in %s", filePath)
 		}
-		cert, parseErr = x509.ParseCertificate(block.Bytes)
+		var err error
+		cert, err = x509.ParseCertificate(certBytes)
+		if err != nil {
+			return nil, err
+		}
 		encoding = "PEM"
 	} else {
-		cert, parseErr = x509.ParseCertificate(data)
+		var err error
+		cert, err = x509.ParseCertificate(data)
+		if err != nil {
+			return nil, err
+		}
 		encoding = "DER"
-	}
-
-	if parseErr != nil {
-		return nil, parseErr
 	}
 
 	info := &CertificateInfo{
@@ -99,43 +92,15 @@ func ParseCertificate(filePath string) (*CertificateInfo, error) {
 	return info, nil
 }
 
+func ParseCertificate(filePath string) (*CertificateInfo, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseCertificateData(data, filePath)
+}
+
 func ParseCertificateFromBytes(data []byte) (*CertificateInfo, error) {
-	var cert *x509.Certificate
-	var parseErr error
-	var encoding string
-
-	if isPEM(data) {
-		block, _ := pem.Decode(data)
-		if block == nil {
-			return nil, fmt.Errorf("no PEM data found")
-		}
-		cert, parseErr = x509.ParseCertificate(block.Bytes)
-		encoding = "PEM"
-	} else {
-		cert, parseErr = x509.ParseCertificate(data)
-		encoding = "DER"
-	}
-
-	if parseErr != nil {
-		return nil, parseErr
-	}
-
-	info := &CertificateInfo{
-		Encoding:     encoding,
-		CommonName:   cert.Subject.CommonName,
-		Issuer:       cert.Issuer.CommonName,
-		Subject:      cert.Subject.String(),
-		NotBefore:    cert.NotBefore.Format("2006-01-02 15:04:05"),
-		NotAfter:     cert.NotAfter.Format("2006-01-02 15:04:05"),
-		Algorithm:    cert.SignatureAlgorithm.String(),
-		SerialNumber: cert.SerialNumber.String(),
-		IsCA:         cert.IsCA,
-	}
-	info.KeyType, info.Bits = getKeyBitsAndType(cert.PublicKey)
-
-	if len(cert.DNSNames) > 0 {
-		info.SANs = cert.DNSNames
-	}
-
-	return info, nil
+	return parseCertificateData(data, "")
 }
