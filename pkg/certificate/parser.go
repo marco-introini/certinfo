@@ -101,7 +101,7 @@ func getPQCTypesFromAlgorithmName(algoName string) []string {
 	if strings.Contains(lowerAlgo, "ml-kem") || strings.Contains(lowerAlgo, "kyber") {
 		if strings.Contains(lowerAlgo, "768") || strings.Contains(lowerAlgo, "512") {
 			pqcTypes = append(pqcTypes, "ML-KEM-768")
-		} else if strings.Contains(lowerAlgo, "1024") || strings.Contains(lowerAlgo, "1024") {
+		} else if strings.Contains(lowerAlgo, "1024") {
 			pqcTypes = append(pqcTypes, "ML-KEM-1024")
 		} else {
 			pqcTypes = append(pqcTypes, "ML-KEM")
