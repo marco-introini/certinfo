@@ -164,6 +164,7 @@ ed25519.key           Ed25519    256     -
 ### Global Flags
 
 - `-h, --help` - Help for any command
+- `-c, --no-color` - Disable color output
 
 ## Output Formats
 
@@ -177,6 +178,15 @@ Machine-readable JSON output suitable for scripting.
 
 ```bash
 certinfo cert certificate.pem --format json
+```
+
+### Color Output
+
+Color output is enabled by default for terminal output. Use `--no-color` or `-c` to disable colors.
+
+```bash
+certinfo cert certificate.pem --no-color
+certinfo cert certificate.pem -c
 ```
 
 ## Examples
@@ -211,6 +221,13 @@ certinfo key /path/to/privatekey.der
 
 ```bash
 certinfo dir ./certs/ --format json > summary.json
+```
+
+### Disable Color Output
+
+```bash
+certinfo cert /path/to/certificate.pem --no-color
+certinfo dir ./certs/ -c
 ```
 
 ## Build

@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"certinfo/pkg/certificate"
-	"certinfo/pkg/utils"
+	"github.com/marco-introini/certinfo/pkg/certificate"
+	"github.com/marco-introini/certinfo/pkg/utils"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -33,7 +33,6 @@ var dirCmd = &cobra.Command{
 }
 
 func init() {
-	dirCmd.Flags().StringVarP(&format, "format", "f", "table", "Output format (table, json)")
 	dirCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "Search recursively")
 	rootCmd.AddCommand(dirCmd)
 }

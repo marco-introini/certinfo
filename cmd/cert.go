@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"certinfo/pkg/certificate"
-	"certinfo/pkg/utils"
+	"github.com/marco-introini/certinfo/pkg/certificate"
+	"github.com/marco-introini/certinfo/pkg/utils"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -24,6 +24,5 @@ var certCmd = &cobra.Command{
 }
 
 func init() {
-	certCmd.Flags().StringVarP(&format, "format", "f", "table", "Output format (table, json)")
 	rootCmd.AddCommand(certCmd)
 }

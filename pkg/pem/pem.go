@@ -14,13 +14,16 @@ func IsPEM(data []byte) bool {
 type BlockType string
 
 const (
-	TypeCertificate   BlockType = "CERTIFICATE"
-	TypePrivateKey    BlockType = "PRIVATE KEY"
-	TypeECPrivateKey  BlockType = "EC PRIVATE KEY"
-	TypeRSAPrivateKey BlockType = "RSA PRIVATE KEY"
-	TypePublicKey     BlockType = "PUBLIC KEY"
-	TypeRSAPublicKey  BlockType = "RSA PUBLIC KEY"
-	TypeECPublicKey   BlockType = "EC PUBLIC KEY"
+	TypeCertificate     BlockType = "CERTIFICATE"
+	TypePrivateKey      BlockType = "PRIVATE KEY"
+	TypeECPrivateKey    BlockType = "EC PRIVATE KEY"
+	TypeRSAPrivateKey   BlockType = "RSA PRIVATE KEY"
+	TypePublicKey       BlockType = "PUBLIC KEY"
+	TypeRSAPublicKey    BlockType = "RSA PUBLIC KEY"
+	TypeECPublicKey     BlockType = "EC PUBLIC KEY"
+	TypeMLKEMPrivateKey BlockType = "ML-KEM PRIVATE KEY"
+	TypeMLKEMPublicKey  BlockType = "ML-KEM PUBLIC KEY"
+	TypePQCCertificate  BlockType = "POST-QUANTUM CERTIFICATE"
 )
 
 func FindBlock(data []byte, types ...BlockType) ([]byte, bool) {

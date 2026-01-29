@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"certinfo/pkg/privatekey"
-	"certinfo/pkg/utils"
+	"github.com/marco-introini/certinfo/pkg/privatekey"
+	"github.com/marco-introini/certinfo/pkg/utils"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -24,6 +24,5 @@ var keyCmd = &cobra.Command{
 }
 
 func init() {
-	keyCmd.Flags().StringVarP(&format, "format", "f", "table", "Output format (table, json)")
 	rootCmd.AddCommand(keyCmd)
 }
