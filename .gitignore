@@ -1,3 +1,5 @@
 /example-certs/
 /.idea/vcs.xml
 certinfo
+# Added by goreleaser init:
+dist/
