@@ -41,24 +41,20 @@ checksum:
   name_template: "{{ .ProjectName }}_checksums.txt"
   algorithm: sha256
 
-homebrew_casks:
+# Ritorno alle Formulae (brews)
+brews:
   - name: certinfo
-    ids:
-      - certinfo
     repository:
       owner: marco-introini
       name: homebrew-tap
-    # Obbligatorio: i Cask devono stare in questa cartella
-    directory: Casks 
+    directory: Formula
     homepage: https://github.com/marco-introini/certinfo
     description: CLI tool to analyze X.509 certificates and private keys
     license: MIT
-    # Sostituisce i vecchi hooks: gestisce automaticamente l'installazione del binario
-    binaries:
-      - certinfo
     commit_author:
       name: marco-introini
       email: marco@marcointroini.it
+    # Non serve 'binaries' qui, viene gestito automaticamente dai 'builds'
 
 changelog:
   sort: asc
