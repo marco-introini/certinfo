@@ -26,6 +26,7 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.PersistentFlags().StringVarP(&format, "format", "f", "table", "Output format (table, json)")
 	rootCmd.PersistentFlags().BoolVarP(&recursive, "recursive", "r", false, "Search recursively")
 	rootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "Disable color output")
