@@ -1,4 +1,4 @@
-.PHONY: test build install
+.PHONY: test build install release-snapshot release
 
 test:
 	go test -parallel=4 ./cmd/... ./pkg/... -v
@@ -9,5 +9,8 @@ test-cover:
 build:
 	go build -o certinfo ./main.go
 
-install:
-	go install ./main.go
+release-snapshot:
+	goreleaser release --snapshot --skip=publish
+
+release:
+	goreleaser release
