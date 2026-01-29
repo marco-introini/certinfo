@@ -14,3 +14,7 @@ release-snapshot:
 
 release:
 	goreleaser release
+
+clear:
+	rm -rf dist/
+	rm certinfo

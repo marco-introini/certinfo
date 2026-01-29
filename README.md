@@ -54,7 +54,7 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, EC, Ed25519) wri
 brew install marco-introini/tap/certinfo
 ```
 
-### Direct Download
+### GitHub Releases
 
 Download the latest binary from the [GitHub Releases](https://github.com/marco-introini/certinfo/releases) page:
 
@@ -62,12 +62,12 @@ Download the latest binary from the [GitHub Releases](https://github.com/marco-i
 # macOS (Apple Silicon)
 curl -L https://github.com/marco-introini/certinfo/releases/latest/download/certinfo_darwin_arm64.tar.gz | tar xz
 chmod +x certinfo
-mv certinfo /usr/local/bin/
+sudo mv certinfo /usr/local/bin/
 
 # macOS (Intel)
 curl -L https://github.com/marco-introini/certinfo/releases/latest/download/certinfo_darwin_x86_64.tar.gz | tar xz
 chmod +x certinfo
-mv certinfo /usr/local/bin/
+sudo mv certinfo /usr/local/bin/
 
 # Linux (x86_64)
 curl -L https://github.com/marco-introini/certinfo/releases/latest/download/certinfo_linux_x86_64.tar.gz | tar xz
@@ -78,20 +78,24 @@ sudo mv certinfo /usr/local/bin/
 curl -L https://github.com/marco-introini/certinfo/releases/latest/download/certinfo_linux_arm64.tar.gz | tar xz
 chmod +x certinfo
 sudo mv certinfo /usr/local/bin/
+
+# Windows
+# Download certinfo_windows_amd64.zip from releases page
+Expand-Archive certinfo_windows_amd64.zip -DestinationPath certinfo
+```
+
+### Go Install
+
+```bash
+go install github.com/marco-introini/certinfo@latest
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/marcobagio/certinfo-go.git
-cd certinfo-go
+git clone https://github.com/marco-introini/certinfo.git
+cd certinfo
 go build -o certinfo ./main.go
-```
-
-### Install Globally
-
-```bash
-go install ./main.go
 ```
 
 ## Usage

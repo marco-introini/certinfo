@@ -3,3 +3,4 @@
 certinfo
 # Added by goreleaser init:
 dist/
+scripts/
