@@ -48,6 +48,38 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, EC, Ed25519) wri
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew install marco-introini/tap/certinfo
+```
+
+### Direct Download
+
+Download the latest binary from the [GitHub Releases](https://github.com/marco-introini/certinfo/releases) page:
+
+```bash
+# macOS (Apple Silicon)
+curl -L https://github.com/marco-introini/certinfo/releases/latest/download/certinfo_darwin_arm64.tar.gz | tar xz
+chmod +x certinfo
+mv certinfo /usr/local/bin/
+
+# macOS (Intel)
+curl -L https://github.com/marco-introini/certinfo/releases/latest/download/certinfo_darwin_x86_64.tar.gz | tar xz
+chmod +x certinfo
+mv certinfo /usr/local/bin/
+
+# Linux (x86_64)
+curl -L https://github.com/marco-introini/certinfo/releases/latest/download/certinfo_linux_x86_64.tar.gz | tar xz
+chmod +x certinfo
+sudo mv certinfo /usr/local/bin/
+
+# Linux (ARM64)
+curl -L https://github.com/marco-introini/certinfo/releases/latest/download/certinfo_linux_arm64.tar.gz | tar xz
+chmod +x certinfo
+sudo mv certinfo /usr/local/bin/
+```
+
 ### From Source
 
 ```bash

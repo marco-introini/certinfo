@@ -58,7 +58,7 @@ brews:
     install: |
       bin.install "certinfo"
     test: |
-      system "#{bin}/certinfo --help"
+      system "#{bin}/certinfo", "--help"
 
 changelog:
   sort: asc
