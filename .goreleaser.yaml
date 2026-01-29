@@ -1,7 +1,6 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 
 version: 2
-
 project_name: certinfo
 
 before:
@@ -9,7 +8,8 @@ before:
     - go mod tidy
 
 builds:
-  - env:
+  - id: certinfo
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -24,7 +24,8 @@ builds:
       - -s -w
 
 archives:
-  - formats: [tar.gz]
+  - id: certinfo
+    formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -40,7 +41,7 @@ checksum:
   name_template: "{{ .ProjectName }}_checksums.txt"
   algorithm: sha256
 
-brews:
+homebrew_casks:
   - name: certinfo
     repository:
       owner: marco-introini
@@ -50,15 +51,16 @@ brews:
     license: MIT
     ids:
       - certinfo
-    download_strategy: GithubRelease
+    url:
+      using: :homebrew_curl
     commit_author:
       name: marco-introini
       email: marco@marcointroini.it
     directory: Formula
-    install: |
-      bin.install "certinfo"
-    test: |
-      system "#{bin}/certinfo", "--help"
+    hooks:
+      post:
+        install: |
+          bin.install "certinfo"
 
 changelog:
   sort: asc
