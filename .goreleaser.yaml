@@ -43,24 +43,22 @@ checksum:
 
 homebrew_casks:
   - name: certinfo
+    ids:
+      - certinfo
     repository:
       owner: marco-introini
       name: homebrew-tap
+    # Obbligatorio: i Cask devono stare in questa cartella
+    directory: Casks 
     homepage: https://github.com/marco-introini/certinfo
     description: CLI tool to analyze X.509 certificates and private keys
     license: MIT
-    ids:
+    # Sostituisce i vecchi hooks: gestisce automaticamente l'installazione del binario
+    binaries:
       - certinfo
-    url:
-      using: :homebrew_curl
     commit_author:
       name: marco-introini
       email: marco@marcointroini.it
-    directory: Formula
-    hooks:
-      post:
-        install: |
-          bin.install "certinfo"
 
 changelog:
   sort: asc
