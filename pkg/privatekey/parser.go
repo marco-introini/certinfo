@@ -141,6 +141,26 @@ func detectPQCOIDFromError(errMsg string) string {
 	return ""
 }
 
+func getPQCBits(pqcType string) int {
+	bitMap := map[string]int{
+		"ML-DSA-44":         44,
+		"ML-DSA-65":         65,
+		"ML-DSA-87":         87,
+		"ML-KEM-512":        512,
+		"ML-KEM-768":        768,
+		"ML-KEM-1024":       1024,
+		"SLH-DSA-SHA2-128S": 128,
+		"SLH-DSA-SHA2-128F": 128,
+		"SLH-DSA-SHA2-192S": 192,
+		"SLH-DSA-SHA2-192F": 192,
+		"SLH-DSA-SHA2-256S": 256,
+		"SLH-DSA-SHA2-256F": 256,
+		"FALCON-512":        512,
+		"FALCON-1024":       1024,
+	}
+	return bitMap[pqcType]
+}
+
 func parsePrivateKeyData(data []byte, filename string) (*KeyInfo, error) {
 	var keyBytes []byte
 	var encoding string
@@ -257,22 +277,19 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 			}
 			for _, pqc := range pqcTypes {
 				info.IsQuantumSafe = true
+				info.Bits = getPQCBits(pqc)
 				if strings.HasPrefix(pqc, "ML-DSA") {
 					info.KeyType = "ML-DSA"
 					info.Algorithm = "ML-DSA"
-					info.Bits = 0
 				} else if strings.HasPrefix(pqc, "ML-KEM") {
 					info.KeyType = "ML-KEM"
 					info.Algorithm = "ML-KEM"
-					info.Bits = 0
 				} else if strings.HasPrefix(pqc, "SLH-DSA") {
 					info.KeyType = "SLH-DSA"
 					info.Algorithm = "SLH-DSA"
-					info.Bits = 0
 				} else if strings.HasPrefix(pqc, "FALCON") {
 					info.KeyType = "FALCON"
 					info.Algorithm = "FALCON"
-					info.Bits = 0
 				}
 			}
 			return info, nil
@@ -283,7 +300,7 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 	if pqcOID != "" {
 		info.IsQuantumSafe = true
 		info.Algorithm = "PKCS#8"
-		info.Bits = 0
+		info.Bits = getPQCBits(pqcOID)
 		if strings.HasPrefix(pqcOID, "ML-DSA") {
 			info.KeyType = "ML-DSA"
 		} else if strings.HasPrefix(pqcOID, "ML-KEM") {
@@ -300,22 +317,19 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 	info.Algorithm = "Unknown"
 	for _, pqc := range pqcTypes {
 		info.IsQuantumSafe = true
+		info.Bits = getPQCBits(pqc)
 		if strings.HasPrefix(pqc, "ML-DSA") {
 			info.KeyType = "ML-DSA"
 			info.Algorithm = "ML-DSA"
-			info.Bits = 0
 		} else if strings.HasPrefix(pqc, "ML-KEM") {
 			info.KeyType = "ML-KEM"
 			info.Algorithm = "ML-KEM"
-			info.Bits = 0
 		} else if strings.HasPrefix(pqc, "SLH-DSA") {
 			info.KeyType = "SLH-DSA"
 			info.Algorithm = "SLH-DSA"
-			info.Bits = 0
 		} else if strings.HasPrefix(pqc, "FALCON") {
 			info.KeyType = "FALCON"
 			info.Algorithm = "FALCON"
-			info.Bits = 0
 		}
 	}
 	if info.KeyType == "<nil>" && len(pqcTypes) > 0 {
