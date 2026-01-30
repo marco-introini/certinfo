@@ -5,6 +5,7 @@
 Questi problemi possono causare crash, panico, o comportamenti errati. Devono essere risolti con priorità massima.
 
 ### 1. Errori ignorati in `pem.Decode` - può causare panic ✅ RISOLTO
+
 **File:** `pkg/certificate/parser.go:66`, `pkg/certificate/parser.go:108`, `pkg/privatekey/parser.go:48`, `pkg/privatekey/parser.go:76`
 
 Il risultato di `pem.Decode()` ha un secondo valore di ritorno (`rest`) che viene ignorato. Se il file PEM contiene più blocchi, questi vengono persi.
@@ -12,6 +13,7 @@ Il risultato di `pem.Decode()` ha un secondo valore di ritorno (`rest`) che vien
 **Risolto** con la creazione di `pkg/pem/pem.go` che fornisce `FindBlock()` che gestisce correttamente tutti i blocchi PEM.
 
 ### 2. Parsing duplicato PKCS8 - sovrascrive errori ✅ RISOLTO
+
 **File:** `pkg/privatekey/parser.go:109`, `pkg/privatekey/parser.go:128`
 
 `ParsePKCS8PrivateKey` viene chiamato due volte con gli stessi dati. La prima chiamata sovrascrive l'errore della chiamata a `ParsePKCS1PrivateKey`, rendendo impossibile distinguere quale parser ha fallito.
@@ -19,6 +21,7 @@ Il risultato di `pem.Decode()` ha un secondo valore di ritorno (`rest`) che vien
 **Risolto** - Rimossa la prima chiamata duplicata. Ora `ParsePKCS8PrivateKey` viene chiamata una sola volta con type switch completo per tutti i tipi di chiave (RSA, EC, Ed25519).
 
 ### 3. Tipo di chiave sconosciuta - potenziale panic ✅ RISOLTO
+
 **File:** `pkg/privatekey/parser.go:162`
 
 Quando nessun parser ha successo, `pkcs8Key` potrebbe essere `nil` se `ParsePKCS8PrivateKey` ha fallito, causando un panic con `fmt.Sprintf("%T", nil)`.
@@ -26,6 +29,7 @@ Quando nessun parser ha successo, `pkcs8Key` potrebbe essere `nil` se `ParsePKCS
 **Risolto** - Aggiunto controllo `if pkcs8Key != nil` prima di chiamare `fmt.Sprintf("%T", pkcs8Key)` per prevenire il panic.
 
 ### 4. Errori ignorati in `time.Parse` - status certificato errato ✅ RISOLTO
+
 **File:** `pkg/certificate/analyzer.go:44`, `pkg/certificate/analyzer.go:87`
 
 Il parsing della data potrebbe fallire silenziosamente. Gli errori vengono ignorati con `_`, portando a calcoli di status errati.
@@ -33,6 +37,7 @@ Il parsing della data potrebbe fallire silenziosamente. Gli errori vengono ignor
 **Risolto** - Creata funzione helper `getCertStatus()` che gestisce correttamente l'errore del parsing. Restituisce `"unknown"` se il parsing della data fallisce.
 
 ### 5. Errori ignorati in `json.MarshalIndent` - nessun output su errore ✅ RISOLTO
+
 **File:** `pkg/utils/output.go:22`, `pkg/utils/output.go:49`, `pkg/utils/output.go:66`, `pkg/utils/output.go:86`
 
 Gli errori di marshaling JSON vengono ignorati. Se il marshaling fallisce, non c'è output e l'errore è invisibile.
@@ -46,6 +51,7 @@ Gli errori di marshaling JSON vengono ignorati. Se il marshaling fallisce, non c
 Questi problemi non causano crash ma rappresentano bug, code smell, o mancanza di best practices. Dovrebbero essere risolti.
 
 ### 6. Magic number hardcoded per giorni di scadenza ✅ RISOLTO
+
 **File:** `pkg/certificate/analyzer.go:9`, `pkg/certificate/analyzer.go:20`
 
 Il valore 30 per i giorni di scadenza è hardcoded. Difficile da mantenere e modificare.
@@ -53,6 +59,7 @@ Il valore 30 per i giorni di scadenza è hardcoded. Difficile da mantenere e mod
 **Risolto** - Aggiunta costante `daysUntilExpiring = 30` e usata nel calcolo dello status.
 
 ### 7. Magic string per formato data ripetuta ✅ RISOLTO
+
 **File:** `pkg/certificate/parser.go:80-81`, `pkg/certificate/parser.go:128-129`, `pkg/certificate/analyzer.go:44`, `pkg/certificate/analyzer.go:87`
 
 Il formato data è ripetuto come stringa in 4 posizioni. Una costante migliora la manutenibilità.
@@ -60,6 +67,7 @@ Il formato data è ripetuto come stringa in 4 posizioni. Una costante migliora l
 **Risolto** - Aggiunta costante `dateFormat` in `pkg/utils/output.go:20` e usata nelle funzioni di formatting. La struttura `CertificateInfo` usa ora `time.Time` direttamente (senza stringa), eliminando il parsing duplicato.
 
 ### 8. Errori wrapping con `%w` invece di `%v` ✅ RISOLTO
+
 **File:** `pkg/certificate/parser.go:58`, `pkg/certificate/parser.go:70`, `pkg/privatekey/parser.go:44`, `pkg/privatekey/parser.go:88`
 
 Usare `%w` per wrapping degli errori mantiene lo stack trace e permette `errors.Is`/`errors.As`.
@@ -67,6 +75,7 @@ Usare `%w` per wrapping degli errori mantiene lo stack trace e permette `errors.
 **Risolto** - Il codice già usa correttamente `%s` per includere stringhe (come path) e `%w` non è necessario in quanto gli errori vengono passati direttamente senza wrapping con fmt.Errorf nelle chiamate di parsing.
 
 ### 9. Pre-allocazione slice mancante ✅ RISOLTO
+
 **File:** `pkg/certificate/analyzer.go:30`, `pkg/certificate/analyzer.go:64`, `pkg/privatekey/parser.go:130`, `pkg/privatekey/parser.go:162`
 
 Le slice vengono estese dinamicamente con `append` senza pre-allocazione. Impatto sulle performance.
@@ -74,6 +83,7 @@ Le slice vengono estese dinamicamente con `append` senza pre-allocazione. Impatt
 **Risolto** - Aggiunta pre-allocazione con `make([]CertificateSummary, 0, len(entries))` e `make([]CertificateSummary, 0, 32)` per ricorsiva. Stesso per `KeySummary`.
 
 ### 10. Parsing inefficiente delle date ✅ RISOLTO
+
 **File:** `pkg/certificate/analyzer.go:11-24`, `pkg/certificate/parser.go:21-22`
 
 Si formatta una data in stringa e poi la si re-parsa. Spreco di CPU.
@@ -81,6 +91,7 @@ Si formatta una data in stringa e poi la si re-parsa. Spreco di CPU.
 **Risolto** - `CertificateInfo` usa ora `time.Time` per `NotBefore` e `NotAfter`. La funzione `getCertStatus()` riceve direttamente `time.Time` senza dover re-parsare.
 
 ### 11. Flag `-f` duplicato in ogni comando ✅ RISOLTO
+
 **File:** `cmd/root.go:16`, `cmd/cert.go:27`, `cmd/key.go:27`, `cmd/dir.go:36`, `cmd/keydir.go:36`
 
 Ogni comando definisce il flag `-f` separatamente. Meglio definirlo in `rootCmd` e lasciare che i sottocomandi lo ereditino.
@@ -88,6 +99,7 @@ Ogni comando definisce il flag `-f` separatamente. Meglio definirlo in `rootCmd`
 **Risolto** - Spostati i flag `-f` e `-r` in `root.go` come `PersistentFlags`. Rimossi i duplicati dai singoli comandi.
 
 ### 12. Usare `any` invece di `interface{}` ✅ RISOLTO
+
 **File:** `pkg/certificate/parser.go:30`
 
 Go 1.18+ permette `any` come alias per `interface{}`. Più idiomatico.
@@ -95,6 +107,7 @@ Go 1.18+ permette `any` come alias per `interface{}`. Più idiomatico.
 **Risolto** - Il codice usa già `any`.
 
 ### 13. Exit codes inconsistente ✅ RISOLTO
+
 **File:** `cmd/cert.go:20`, `cmd/key.go:20`, `cmd/dir.go:28`, `cmd/keydir.go:28`
 
 Tutti i comandi usano `os.Exit(1)`, ma non c'è un modo coerente di gestire codici di errore specifici.
@@ -108,6 +121,7 @@ Tutti i comandi usano `os.Exit(1)`, ma non c'è un modo coerente di gestire codi
 Miglioramenti opzionali, refactoring, e best practices. Basso impatto sulla stabilità.
 
 ### 14. Funzione `isPEM` duplicata ✅ RISOLTO
+
 **File:** `pkg/certificate/parser.go:50`, `pkg/privatekey/parser.go:33`
 
 La funzione `isPEM` è identica in entrambi i file. Creare un package comune `pkg/pem`.
@@ -115,6 +129,7 @@ La funzione `isPEM` è identica in entrambi i file. Creare un package comune `pk
 **Risolto** - Creato `pkg/pem/pem.go` con funzioni condivise.
 
 ### 15. Logica di parsing PEM duplicata ✅ RISOLTO
+
 **File:** `pkg/certificate/parser.go:65-75`, `pkg/certificate/parser.go:107-117`, `pkg/privatekey/parser.go:46-65`, `pkg/privatekey/parser.go:74-93`
 
 La logica per determinare se un file è PEM e decodificarlo è ripetuta 4 volte.
@@ -122,6 +137,7 @@ La logica per determinare se un file è PEM e decodificarlo è ripetuta 4 volte.
 **Risolto** - Unificato in `pkg/pem/pem.go`.
 
 ### 16. Logica di calcolo status duplicata ✅ RISOLTO
+
 **File:** `pkg/certificate/analyzer.go:44-53`, `pkg/certificate/analyzer.go:87-96`
 
 Il calcolo dello stato del certificato è duplicato. Creare una funzione helper.
@@ -129,11 +145,13 @@ Il calcolo dello stato del certificato è duplicato. Creare una funzione helper.
 **Risolto** - Creata funzione helper `getCertStatus()` che calcola lo stato del certificato in modo centralizzato.
 
 ### 17. Magic string per header tabella ⚠️ NON RISOLTO
+
 **File:** `pkg/utils/output.go:57`, `pkg/utils/output.go:94`
 
 Le intestazioni delle tabelle sono hardcoded.
 
 ### 18. Aggiornare versione Go ✅ RISOLTO
+
 **File:** `go.mod:3`
 
 Il progetto usa Go 1.21. Considerare l'upgrade a Go 1.25.
@@ -141,224 +159,208 @@ Il progetto usa Go 1.21. Considerare l'upgrade a Go 1.25.
 **Risolto** - Aggiornato a Go 1.25.
 
 ### 19. Usare `context.Context` per cancellazione ⚠️ NON RISOLTO
+
 **File:** `cmd/*.go`, `pkg/certificate/analyzer.go`, `pkg/privatekey/parser.go`
 
 Nessun uso di `context.Context`. Per operazioni ricorsive, permettere cancellazione.
 
 ### 20. Usare `filepath.Clean` per normalizzare percorsi ⚠️ NON RISOLTO
+
 **File:** `pkg/certificate/analyzer.go:30`, `pkg/privatekey/parser.go:179`
 
 I percorsi potrebbero beneficiare di normalizzazione.
 
 ### 21. Copertura test insufficiente ✅ RISOLTO
+
 Non sono stati trovati test per `cmd/` e `pkg/utils/`.
 
 **Risolto** - Aggiunti test per:
+
 - `cmd/cmd_test.go`: Test per tutti i comandi CLI (cert, key, dir, keydir) con formato table e JSON
 - `pkg/utils/output_test.go`: Test per tutte le funzioni di output con table e JSON
 
 ### 22. Test per casi edge mancanti ✅ RISOLTO
+
 - File vuoti
 - File corrotti
 - File con encoding misto
 - Chiavi criptate (con password)
 
 **Risolto** - Aggiunti test edge in:
+
 - `pkg/certificate/parser_test.go`: Test per file vuoti, PEM non validi, dati corrotti
 - `pkg/privatekey/parser_test.go`: Test per file vuoti, dati garbage
 
 ### 23. Commenti godoc mancanti ⚠️ NON RISOLTO
+
 Aggiungere commenti godoc per le funzioni pubbliche.
 
 ### 24. Estrarre package PEM ✅ RISOLTO
+
 Creare un package `pkg/pem` per logica PEM/DER condivisa.
 
 **Risolto** - Creato `pkg/pem/pem.go`.
 
 ### 25. Unificare output formatting con generici ⚠️ NON RISOLTO
+
 **File:** `pkg/utils/output.go`
 
 Le funzioni `Print*` sono molto simili. Go 1.18+ permette generici.
 
 ---
 
-## Supporto Post-Quantum (PQC)
+## Problemi Critici Aggiuntivi
 
-Aggiungere supporto per certificati e chiavi post-quantum (algoritmi NIST standardizzati).
+### 26. Loop infinito in `FindBlock` con file PEM malformed
 
-### Prerequisiti
+**File:** `pkg/pem/pem.go:31-45`
 
-### 26. Aggiornare versione Go ✅ FATTO (Go 1.25 supporta PQC)
-**File:** `go.mod:3`
+**Problema:** Se un file PEM è malformed (senza `-----END-----`), `pem.Decode` restituisce sempre un block non-nil ma con dati parziali, causando un loop infinito che consuma memoria fino all'OOM.
 
-Il supporto post-quantum in `crypto/x509` è disponibile da Go 1.23. Go 1.25 lo supporta completamente.
+**Rimedio:** Aggiungere limite `maxPEMBlocks = 100` e controllo `len(rest) == 0`.
 
-### Algoritmi Supportati
+### 27. Errori silenziati in `filepath.Walk`
 
-| Tipo | Go Type | Bits | Note |
-|------|---------|------|------|
-| ML-KEM-768 | `mlkem.PublicKey` | 1184 | KEM post-quantum |
-| ML-KEM-1024 | `mlkem.PublicKey` | 1568 | KEM post-quantum |
-| ML-DSA-44 | signature | - | Firme quanttum-safe |
-| ML-DSA-65 | signature | - | Firme quanttum-safe |
-| ML-DSA-87 | signature | - | Firme quanttum-safe |
-| SLH-DSA-SHA2 | signature | - | Firme quanttum-safe |
-| SLH-DSA-SHAKE | signature | - | Firme quanttum-safe |
-| FN-DSA | signature | - | Firme quanttum-safe |
+**File:** `pkg/certificate/analyzer.go:71-74`, `pkg/privatekey/parser.go:377-380`
 
-### Modifiche al Parser Certificati
+**Problema:** Qualsiasi errore (permessi, file corrotto, filesystem) viene silenziato. L'utente non sa quali file sono stati saltati.
 
-### 27. Aggiornare `getKeyBitsAndType()` per PQC ✅ COMPLETATO
-**File:** `pkg/certificate/parser.go:35`
+**Rimedio:** Implementare callback per errori o logging strutturato.
 
-Aggiungere riconoscimento chiavi ML-KEM tramite type switch.
+### 28. Nessun limite dimensione file
 
-### 28. Aggiornare `CertificateInfo` per PQC ✅ COMPLETATO
-**File:** `pkg/certificate/parser.go:17`
+**File:** `pkg/certificate/parser.go:196-199`, `pkg/privatekey/parser.go:190-193`
 
-Aggiunti campi `IsQuantumSafe bool` e `PQCTypes []string`.
+**Problema:** `os.ReadFile` legge file interi senza limiti. Rischio OOM con file malevoli.
 
-### 29. Aggiornare parsing algoritmo firma PQC ✅ COMPLETATO
-**File:** `pkg/certificate/parser.go:84`
+**Rimedio:** Aggiungere costante `maxFileSizeBytes = 50 * 1024 * 1024` e validazione.
 
-Aggiunte funzioni `isPQCSignatureAlgorithmByName()` e `getPQCTypesFromAlgorithmName()` per riconoscere algoritmi PQC dal nome.
+### 29. Parsing PKCS8 con loop PQC incompleto
 
-### Modifiche al Parser Chiavi Private
+**File:** `pkg/privatekey/parser.go:278-294`
 
-### 30. Aggiornare `parseKey()` per chiavi PQC ✅ COMPLETATO
-**File:** `pkg/privatekey/parser.go:69`
+**Problema:** Il loop `for _, pqc := range pqcTypes` non ha break, quindi solo l'ultimo PQC viene applicato a `Bits`.
 
-Aggiunto riconoscimento chiavi ML-KEM, ML-DSA, SLH-DSA, FN-DSA tramite type string detection.
+**Rimedio:** Ristrutturare per raccogliere tutti i PQC types in una slice.
 
-### Modifiche all'Output
+### 30. String matching PQC vulnerabile a falsi positivi
 
-### 31. Aggiornare `PrintCertificateInfo()` per PQC ✅ COMPLETATO
-**File:** `pkg/utils/output.go:27`
+**File:** `pkg/certificate/parser.go:54-63`, `pkg/privatekey/parser.go:36-46`
 
-Aggiunto campo "Quantum Safe" e "PQC Types" nell'output.
+**Problema:** `strings.Contains` è troppo permissivo. Un algoritmo "dummy-ml-dsa-test" verrebbe riconosciuto come PQC. Bug: `" sphincs"` ha spazio iniziale.
 
-### 32. Aggiornare `PrintCertificateSummaries()` per PQC ✅ COMPLETATO
-**File:** `pkg/utils/output.go:58`
+**Rimedio:** Usare regex con word boundary.
 
-Aggiunta colonna "QUANTUM SAFE" e "PQC TYPES" nella tabella summary.
+### 31. Resource leak con file aperti
 
-### Modifiche all'Analyzer
+**File:** `pkg/certificate/parser.go:196-203`, `pkg/privatekey/parser.go:190-197`
 
-### 33. Aggiornare `CertificateSummary` per PQC ✅ COMPLETATO
-**File:** `pkg/certificate/analyzer.go:22`
+**Problema:** Nessun `defer f.Close()` dopo `os.Open`.
 
-Aggiunti campi `IsQuantumSafe bool` e `PQCTypes []string`.
+**Rimedio:** Aggiungere `defer f.Close()` in entrambe le funzioni.
 
-### 34. Aggiornare funzioni di summary per PQC ✅ COMPLETATO
-**File:** `pkg/certificate/analyzer.go:50`, `pkg/certificate/analyzer.go:83`
+### 32. Panic potenziale con chiave nil
 
-Popolati i nuovi campi PQC nelle summary.
+**File:** `pkg/certificate/parser.go:34-52`
 
-### Test
+**Problema:** Nessuna validazione se `key.N` o `key.Curve` sono nil.
 
-### 35. Generare certificati PQC per test ⚠️ NON RISOLTO
-Creare script di test che genera certificati ibridi e PQC puri.
+**Rimedio:** Aggiungere controlli nil prima di accedere ai campi.
 
-### 36. Test per chiavi PQC ⚠️ NON RISOLTO
-**File:** `pkg/privatekey/pqc_test.go`
+---
 
-### Note di Implementazione
+## Errori da Sistemare Aggiuntivi
 
-- **Certificati ibridi**: Go supporta già certificati ibridi (tradizionale + PQC). Il parsing deve riconoscere entrambi.
-- **ML-KEM keys**: Le chiavi ML-KEM sono disponibili in `crypto/mlkem` da Go 1.23.
-- **PEM format**: I certificati PQC usano lo stesso formato PEM/DER.
-- **Fallback**: Se un algoritmo non è riconosciuto, mostrare il tipo originale (es. "ML-KEM-768").
+### 33. Duplicazione logica PQC tra package
 
-### Riferimenti
+**Problema:** Funzioni PQC duplicate in `pkg/certificate/parser.go` e `pkg/privatekey/parser.go`.
 
-- [NIST Post-Quantum Cryptography](https://csrc.nist.gov/projects/post-quantum-cryptography)
-- [Go crypto/mlkem package](https://pkg.go.dev/crypto/mlkem)
-- [Go x509 - PQC support](https://pkg.go.dev/crypto/x509#pkg-constants)
+**Rimedio:** Creare package centralizzato `pkg/pqc/detector.go`.
+
+### 34. Costanti sparse nel codebase
+
+**Problema:** Costanti definite senza centralizzazione.
+
+**Rimedio:** Creare `pkg/config/constants.go`.
+
+### 35. Error handling inconsistente
+
+**Problema:** Errori gestiti in modo diverso tra package.
+
+**Rimedio:** Definire errori standard in `pkg/errors/errors.go`.
 
 ---
 
 ## Funzionalità Aggiuntive
 
-Funzionalità extra richieste per migliorare l'utilità del programma.
+### 41. Flag per report JSON strutturato con errori
 
-### 37. Confronto chiave privata e certificato ⚠️ NON RISOLTO
-**File:** Nuovo `pkg/matching/matcher.go`, nuovo comando `cmd/match.go`
+**File:** `cmd/*.go`
 
-Verificare se una chiave privata corrisponde a un certificato (stesso subject, stessa chiave pubblica).
+Aggiungere output JSON che include metadata, errori e statistiche.
 
-### 38. Supporto file PKCS#12 (`.pfx`, `.p12`) ⚠️ NON RISOLTO
-**File:** Nuovo `pkg/pkcs12/parser.go`, nuovo comando `cmd/p12.go`
+### 42. Progress bar per operazioni su directory grandi
 
-Leggere file PKCS#12 con password opzionale, estrarre certificato e chiave privata.
+**Rimedio:** Usare libreria per mostrare progresso durante `SummarizeDirectoryRecursive`.
 
-### 39. Colorazione output nel terminale ✅ RISOLTO
-**File:** `pkg/utils/output.go`, `pkg/utils/colors.go`
+### 43. Filtri per estensione file
 
-Aggiungere colori ANSI per migliorare leggibilità.
+**Rimedio:** Aggiungere flag `--ext .crt,.cer` per filtrare i file processati.
 
-**Risolto** - Creato `pkg/utils/colors.go` con:
-- Costanti colori ANSI (rosso, verde, giallo, ciano, blu, bold)
-- Funzione `Color()` per applicare colori al testo
-- Supporto per `NO_COLOR` environment variable
-- Flag `--no-color` per disabilitare colori
-- Colori automatici disabilitati quando stdout non è un terminale
+### 44. Output machine-readable per errore
 
-Colori applicati:
-- Intestazioni tabelle: ciano bold
-- Status "valid": verde
-- Status "expired": rosso
-- Status "expiring": giallo
-- Quantum Safe "Yes": verde, "No": giallo
+**Rimedio:** Aggiungere flag `--quiet` che disabilita messaggi umani.
 
-### 40. Analisi sicurezza del certificato ⚠️ NON RISOLTO
-**File:** Nuovo `pkg/security/analyzer.go`, nuovo comando `cmd/audit.go`
+### 45. Configurazione via file
 
-Verificare problemi di sicurezza: key length, algoritmi deboli, estensioni rischiose.
+**Rimedio:** Supportare file di configurazione `.certinfo.yaml`.
 
-### Riepilogo Funzionalità
+### 46. Verbose mode per debugging
 
-| # | Funzionalità | Priorità | Difficoltà | Stato |
-|---|--------------|----------|------------|-------|
-| 37 | Confronto chiave-certificato | Alta | Media | ❌ |
-| 38 | Supporto PKCS#12 | Alta | Media | ❌ |
-| 39 | Colorazione output | Media | Bassa | ✅ |
-| 40 | Analisi sicurezza | Alta | Media-Alta | ❌ |
+**Rimedio:** Aggiungere flag `-v/--verbose` per debug output.
 
 ---
 
-## Riepilogo ModificheEffettuate
+## Riepilogo Attivita
 
-### Modifiche al codice (Go 1.25 upgrade)
+| #   | Attivita                                            | Stato |
+| --- | --------------------------------------------------- | ----- |
+| 1   | Aggiornamento go.mod a Go 1.25                      | ✅    |
+| 2   | Creazione package `pkg/pem`                         | ✅    |
+| 3   | Refactoring `pkg/certificate/parser.go`             | ✅    |
+| 4   | Refactoring `pkg/privatekey/parser.go`              | ✅    |
+| 5   | Fix parsing duplicato PKCS8                         | ✅    |
+| 6   | Fix potenziale panic chiave sconosciuta             | ✅    |
+| 7   | Fix errori ignorati time.Parse                      | ✅    |
+| 8   | Fix errori ignorati json.MarshalIndent              | ✅    |
+| 9   | Aggiunta costante dateFormat                        | ✅    |
+| 10  | Unificazione logica status con getCertStatus()      | ✅    |
+| 11  | Magic number giorni scadenza                        | ✅    |
+| 12  | Costante dateFormat in output.go                    | ✅    |
+| 13  | CertificateInfo usa time.Time                       | ✅    |
+| 14  | Pre-allocazione slice summary                       | ✅    |
+| 15  | Flag -f e -r unificati in root                      | ✅    |
+| 16  | Supporto Post-Quantum Cryptography                  | ✅    |
+| 17  | Magic string per header tabella                     | ⚠️    |
+| 18  | Usare `context.Context` per cancellazione           | ⚠️    |
+| 19  | Usare `filepath.Clean` per normalizzare percorsi    | ⚠️    |
+| 20  | Commenti godoc mancanti                             | ⚠️    |
+| 21  | Unificare output formatting con generici            | ⚠️    |
+| 22  | Loop infinito in `FindBlock` con file PEM malformed | ⚠️    |
+| 23  | Errori silenziati in `filepath.Walk`                | ⚠️    |
+| 24  | Nessun limite dimensione file                       | ⚠️    |
+| 25  | Parsing PKCS8 con loop PQC incompleto               | ⚠️    |
+| 26  | String matching PQC vulnerabile a falsi positivi    | ⚠️    |
+| 27  | Resource leak con file aperti                       | ⚠️    |
+| 28  | Panic potenziale con chiave nil                     | ⚠️    |
+| 29  | Duplicazione logica PQC tra package                 | ⚠️    |
+| 30  | Costanti sparse nel codebase                        | ⚠️    |
+| 31  | Error handling inconsistente                        | ⚠️    |
+| 32  | Flag per report JSON strutturato con errori         | ⚠️    |
+| 33  | Progress bar per operazioni su directory grandi     | ⚠️    |
+| 34  | Filtri per estensione file                          | ⚠️    |
+| 35  | Output machine-readable per errore                  | ⚠️    |
+| 36  | Configurazione via file                             | ⚠️    |
+| 37  | Verbose mode per debugging                          | ⚠️    |
 
-| # | Modifica | File | Stato |
-|---|----------|------|-------|
-| 1 | Aggiornamento go.mod a Go 1.25 | `go.mod` | ✅ |
-| 2 | Creazione package `pkg/pem` | `pkg/pem/pem.go` | ✅ |
-| 3 | Refactoring `pkg/certificate/parser.go` | `pkg/certificate/parser.go` | ✅ |
-| 4 | Refactoring `pkg/privatekey/parser.go` | `pkg/privatekey/parser.go` | ✅ |
-
-### Modifiche recenti (gennaio 2026)
-
-| # | Modifica | File | Stato |
-|---|----------|------|-------|
-| 5 | Fix parsing duplicato PKCS8 | `pkg/privatekey/parser.go` | ✅ |
-| 6 | Fix potenziale panic chiave sconosciuta | `pkg/privatekey/parser.go` | ✅ |
-| 7 | Fix errori ignorati time.Parse | `pkg/certificate/analyzer.go` | ✅ |
-| 8 | Fix errori ignorati json.MarshalIndent | `pkg/utils/output.go` | ✅ |
-| 9 | Aggiunta costante dateFormat | `pkg/certificate/analyzer.go` | ✅ |
-|10 | Unificazione logica status con getCertStatus() | `pkg/certificate/analyzer.go` | ✅ |
-|11 | Magic number giorni scadenza | `pkg/certificate/analyzer.go` | ✅ |
-|12 | Costante dateFormat in output.go | `pkg/utils/output.go` | ✅ |
-|13 | CertificateInfo usa time.Time | `pkg/certificate/parser.go` | ✅ |
-|14 | Pre-allocazione slice summary | `pkg/certificate/analyzer.go`, `pkg/privatekey/parser.go` | ✅ |
-|15 | Flag -f e -r unificati in root | `cmd/root.go`, `cmd/*.go` | ✅ |
-|16 | **Supporto Post-Quantum Cryptography** | `pkg/certificate/parser.go`, `pkg/certificate/analyzer.go`, `pkg/privatekey/parser.go`, `pkg/utils/output.go` | ✅ |
-
-### TODO rimanenti
-
-- **Problemi critici**: 0 non risolti (2, 3, 4, 5 sono ✅)
-- **Errori da sistemare**: 5 non risolti (6, 7-parziale, 8, 9, 10, 11, 13)
-- **Nice to have**: 5 non risolti (17, 19, 20, 23, 25)
-- **Test**: 2 risolti (21, 22)
-- **PQC**: 6 completati (27-34), 2 non risolti (35-36)
-- **Funzionalità aggiuntive**: 3 non risolti (37, 38, 40), 1 risolto (39)
+**Totale:** 16 completati, 21 da completare
