@@ -1,15 +1,16 @@
 # Certinfo
 
-A CLI tool to analyze X.509 certificates and private keys (RSA, EC, Ed25519) written in Go.
+A CLI tool to analyze X.509 certificates and private keys (RSA, ECDSA, Ed25519, PQC) written in Go.
 
 ## Features
 
 - Analyze single X.509 certificate files with detailed information
 - Scan directories for certificates with summary output
-- Parse private keys (RSA, EC, Ed25519) with key characteristics
+- Parse private keys (RSA, ECDSA, Ed25519, ML-KEM, ML-DSA, SLH-DSA, FN-DSA) with key characteristics
 - Output in table or JSON format
 - Recursive directory scanning support
 - Supports both PEM and DER encoding formats
+- Post-Quantum Cryptography (PQC) support
 - Test suite with 42+ tests covering all functionality
 
 ## Supported Formats
@@ -20,26 +21,42 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, EC, Ed25519) wri
 |------|-------------|------------------|
 | RSA | RSA certificates | 2048, 3072, 4096 bits |
 | ECDSA | Elliptic Curve DSA | P-256, P-384, P-521 |
-| Ed25519 | Edwards Curve DSA | 256 bits (fixed) |
-| Ed448 | Edwards Curve DSA | 456 bits (fixed) |
+| Ed25519 | EdDSA certificates | 256 bits (fixed) |
+| Ed448 | EdDSA certificates | 448 bits (fixed) |
+| PQC | Post-Quantum Cryptography | ML-DSA, SLH-DSA, FN-DSA |
 | Self-signed | Certificates without CA | All above types |
+
+Note: Ed25519 and Ed448 certificates are supported for parsing. Key type is detected based on the public key algorithm.
 
 ### Certificate Extensions
 
 - Subject Alternative Names (SAN)
 - Wildcard certificates (`*.example.com`)
-- Certificate chains (Root → Intermediate → Leaf)
 - Client certificates (mTLS with `clientAuth` EKU)
 - CA certificates
+
+### Certificate Status
+
+- **valid** - Certificate is currently valid
+- **expired** - Certificate has expired
+- **expiring soon** - Certificate expires within 30 days
 
 ### Private Key Formats
 
 | Format | Type | Notes |
 |--------|------|-------|
 | PKCS#1 | RSA, EC | Traditional format (`BEGIN RSA PRIVATE KEY`) |
-| PKCS#8 | RSA, EC, Ed25519 | Encapsulated format (`BEGIN PRIVATE KEY`) |
-| EC PARAMETERS | EC | Separate curve parameters supported |
+| PKCS#8 | RSA, EC, Ed25519, PQC | Encapsulated format (`BEGIN PRIVATE KEY`) |
 | DER | All | Binary format without PEM headers |
+
+### Post-Quantum Cryptography (PQC)
+
+| Algorithm | Type | Description |
+|-----------|------|-------------|
+| ML-DSA | Signature | Dilithium signature algorithm (NIST FIPS 204) |
+| SLH-DSA | Signature | Sphincs+ signature algorithm (NIST FIPS 205) |
+| FN-DSA | Signature | Falcon signature algorithm (NIST FIPS 206) |
+| ML-KEM | Key Encapsulation | Kyber KEM algorithm (NIST FIPS 203) |
 
 ### Encodings
 
@@ -121,15 +138,18 @@ certinfo cert <certificate.der>
 **Example Output:**
 ```
 Filename:       certificate.pem
+Encoding:       PEM
 Common Name:    example.com
 Issuer:         Let's Encrypt
 Subject:        CN=example.com
 Not Before:     2024-01-01 00:00:00
 Not After:      2025-01-01 00:00:00
 Algorithm:      SHA256-RSA
+Key Type:       RSA
 Bits:           2048
 Serial Number:  1234567890abcdef
 Is CA:          false
+Quantum Safe:   false
 SANs:           [example.com www.example.com]
 ```
 
@@ -147,9 +167,10 @@ certinfo dir <directory/>
 
 **Example Output:**
 ```
-FILENAME          ENCODING  CN          ISSUER        STATUS
-cert.pem          PEM       example.com  Let's Encrypt  valid
-expired.pem       PEM       old.example  DigiCert       expired
+FILENAME          ENCODING  CN          ISSUER        STATUS    QUANTUM SAFE  PQC TYPES
+cert.pem          PEM       example.com  Let's Encrypt  valid     No            -
+expired.pem       PEM       old.example  DigiCert       expired   No            -
+pqc.pem           PEM       pqc.test     PQC CA         valid     Yes           ML-DSA-44
 ```
 
 #### `key` - Analyze a Private Key
@@ -163,18 +184,21 @@ certinfo key <key.der>
 
 **Supports:**
 - RSA keys (PKCS#1, PKCS#8)
-- EC keys
+- EC keys (P-256, P-384, P-521)
 - Ed25519 keys
+- PQC keys (ML-KEM, ML-DSA, SLH-DSA, FN-DSA)
 
 **Flags:**
 - `-f, --format string` - Output format (table, json) (default: table)
 
 **Example Output:**
 ```
-Filename:   privatekey.pem
-Key Type:   RSA
-Algorithm:  PKCS#1 v1.5
-Bits:       2048
+Filename:       privatekey.pem
+Encoding:       PEM
+Key Type:       RSA
+Algorithm:      PKCS#1 v1.5
+Bits:           2048
+Quantum Safe:   false
 ```
 
 #### `keydir` - Summarize Private Keys in a Directory
@@ -191,10 +215,12 @@ certinfo keydir <directory/>
 
 **Example Output:**
 ```
-FILENAME              TYPE       BITS    CURVE
-rsa2048.key           RSA        2048    -
-ec256.key             EC         256     P-256
-ed25519.key           Ed25519    256     -
+FILENAME              ENCODING  TYPE       BITS    CURVE    QUANTUM SAFE
+rsa2048.key           PEM       RSA        2048    -        No
+ec256.key             PEM       EC         256     P-256    No
+ed25519.key           PEM       Ed25519    256     -        No
+ml-dsa.key            PEM       ML-DSA     -       -        Yes
+ml-kem.key            PEM       ML-KEM     -       -        Yes
 ```
 
 ### Global Flags
@@ -272,14 +298,6 @@ certinfo dir ./certs/ -c
 go build -o certinfo ./main.go
 ```
 
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
-
 ## Testing
 
 ### Running Tests
@@ -303,7 +321,8 @@ test_certs/
 ├── san-types/         # Certificates with SAN extensions
 ├── client/            # Client certificates (mTLS)
 ├── wildcard/          # Wildcard certificates (*.test.local)
-└── p12-format/        # PKCS#12 bundles (password: testpass)
+├── p12-format/        # PKCS#12 bundles (password: testpass)
+└── postquantum/       # PQC certificates and keys
 ```
 
 ### Regenerating Test Certificates
@@ -318,9 +337,17 @@ test_certs/
 
 ### Test Coverage
 
-- Certificate parsing (all types and formats)
-- Key parsing (RSA, ECDSA, Ed25519, Ed448)
+- Certificate parsing (RSA, ECDSA, Ed25519, Ed448, PQC)
+- Key parsing (RSA, ECDSA, Ed25519, ML-KEM, ML-DSA, SLH-DSA, FN-DSA)
 - Directory scanning (recursive and non-recursive)
-- Certificate chain verification
 - SAN and wildcard handling
 - Status detection (valid, expired, expiring soon)
+- PQC algorithm detection
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.

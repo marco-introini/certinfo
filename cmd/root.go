@@ -11,7 +11,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "certinfo",
 	Short: "Analyze certificates and private keys",
-	Long:  `A CLI tool to analyze X.509 certificates and private keys (RSA, EC, DSA)`,
+	Long:  `A CLI tool to analyze X.509 certificates and private keys (RSA, ECDSA, Ed25519, PQC)`,
 }
 
 var format string
