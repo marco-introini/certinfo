@@ -215,12 +215,12 @@ certinfo keydir <directory/>
 
 **Example Output:**
 ```
-FILENAME              ENCODING  TYPE       BITS    CURVE    QUANTUM SAFE
-rsa2048.key           PEM       RSA        2048    -        No
-ec256.key             PEM       EC         256     P-256    No
-ed25519.key           PEM       Ed25519    256     -        No
-ml-dsa.key            PEM       ML-DSA     -       -        Yes
-ml-kem.key            PEM       ML-KEM     -       -        Yes
+FILENAME              ENCODING  TYPE       BITS    QUANTUM SAFE
+rsa2048.key           PEM       RSA        2048    No
+ec256.key             PEM       EC         256     No
+ed25519.key           PEM       Ed25519    256     No
+ml-dsa.key            PEM       ML-DSA     44      Yes
+ml-kem.key            PEM       ML-KEM     768     Yes
 ```
 
 ### Global Flags

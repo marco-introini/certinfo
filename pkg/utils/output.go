@@ -204,23 +204,19 @@ func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 		return
 	}
 
-	headers := []string{"FILENAME", "ENCODING", "TYPE", "BITS", "CURVE", "QUANTUM SAFE"}
+	headers := []string{"FILENAME", "ENCODING", "TYPE", "BITS", "QUANTUM SAFE"}
 	colWidths := make([]int, len(headers))
 	for i, h := range headers {
 		colWidths[i] = len(h)
 	}
 
 	for _, s := range summaries {
-		curve := s.Curve
-		if curve == "" {
-			curve = "-"
-		}
 		bitsStr := fmt.Sprintf("%d", s.Bits)
 		qs := "Yes"
 		if !s.IsQuantumSafe {
 			qs = "No"
 		}
-		data := []string{s.Filename, s.Encoding, s.KeyType, bitsStr, curve, qs}
+		data := []string{s.Filename, s.Encoding, s.KeyType, bitsStr, qs}
 		for i, d := range data {
 			if len(d) > colWidths[i] {
 				colWidths[i] = len(d)
@@ -243,11 +239,6 @@ func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 
 	// Print rows
 	for _, s := range summaries {
-		curve := s.Curve
-		if curve == "" {
-			curve = "-"
-		}
-
 		qs := "No"
 		if s.IsQuantumSafe {
 			qs = "Yes"
@@ -266,8 +257,7 @@ func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 			padRight(s.Encoding, colWidths[1]),
 			padRight(s.KeyType, colWidths[2]),
 			padRight(fmt.Sprintf("%d", s.Bits), colWidths[3]),
-			padRight(curve, colWidths[4]),
-			padRight(qs, colWidths[5]),
+			padRight(qs, colWidths[4]),
 		}
 		for i, cell := range row {
 			fmt.Print(cell)
