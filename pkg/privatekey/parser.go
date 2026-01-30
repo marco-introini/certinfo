@@ -46,6 +46,101 @@ func isPQCCheck(algo string) bool {
 		strings.Contains(lowerAlgo, "rainbow")
 }
 
+func detectPQCFromText(data []byte) []string {
+	var pqcTypes []string
+	dataStr := string(data)
+	if strings.Contains(dataStr, "ML-DSA-44") || strings.Contains(dataStr, "MLDSA44") {
+		pqcTypes = append(pqcTypes, "ML-DSA-44")
+	}
+	if strings.Contains(dataStr, "ML-DSA-65") || strings.Contains(dataStr, "MLDSA65") {
+		pqcTypes = append(pqcTypes, "ML-DSA-65")
+	}
+	if strings.Contains(dataStr, "ML-DSA-87") || strings.Contains(dataStr, "MLDSA87") {
+		pqcTypes = append(pqcTypes, "ML-DSA-87")
+	}
+	if strings.Contains(dataStr, "ML-KEM-512") || strings.Contains(dataStr, "MLKEM512") {
+		pqcTypes = append(pqcTypes, "ML-KEM-512")
+	}
+	if strings.Contains(dataStr, "ML-KEM-768") || strings.Contains(dataStr, "MLKEM768") {
+		pqcTypes = append(pqcTypes, "ML-KEM-768")
+	}
+	if strings.Contains(dataStr, "ML-KEM-1024") || strings.Contains(dataStr, "MLKEM1024") {
+		pqcTypes = append(pqcTypes, "ML-KEM-1024")
+	}
+	if strings.Contains(dataStr, "SLH-DSA-SHA2-128S") {
+		pqcTypes = append(pqcTypes, "SLH-DSA-SHA2-128S")
+	}
+	if strings.Contains(dataStr, "SLH-DSA-SHA2-128F") {
+		pqcTypes = append(pqcTypes, "SLH-DSA-SHA2-128F")
+	}
+	if strings.Contains(dataStr, "SLH-DSA-SHA2-192S") {
+		pqcTypes = append(pqcTypes, "SLH-DSA-SHA2-192S")
+	}
+	if strings.Contains(dataStr, "SLH-DSA-SHA2-192F") {
+		pqcTypes = append(pqcTypes, "SLH-DSA-SHA2-192F")
+	}
+	if strings.Contains(dataStr, "SLH-DSA-SHA2-256S") {
+		pqcTypes = append(pqcTypes, "SLH-DSA-SHA2-256S")
+	}
+	if strings.Contains(dataStr, "SLH-DSA-SHA2-256F") {
+		pqcTypes = append(pqcTypes, "SLH-DSA-SHA2-256F")
+	}
+	if strings.Contains(dataStr, "FALCON-512") {
+		pqcTypes = append(pqcTypes, "FALCON-512")
+	}
+	if strings.Contains(dataStr, "FALCON-1024") {
+		pqcTypes = append(pqcTypes, "FALCON-1024")
+	}
+	return pqcTypes
+}
+
+func detectPQCFromOID(oid string) string {
+	oidMap := map[string]string{
+		"2.16.840.1.101.3.4.3.17": "ML-DSA-44",
+		"2.16.840.1.101.3.4.3.18": "ML-DSA-65",
+		"2.16.840.1.101.3.4.3.19": "ML-DSA-87",
+		"2.16.840.1.101.3.4.3.20": "ML-KEM-512",
+		"2.16.840.1.101.3.4.3.21": "ML-KEM-768",
+		"2.16.840.1.101.3.4.3.22": "ML-KEM-1024",
+		"2.16.840.1.101.3.4.3.23": "SLH-DSA-SHA2-128S",
+		"2.16.840.1.101.3.4.3.24": "SLH-DSA-SHA2-128F",
+		"2.16.840.1.101.3.4.3.25": "SLH-DSA-SHA2-192S",
+		"2.16.840.1.101.3.4.3.26": "SLH-DSA-SHA2-192F",
+		"2.16.840.1.101.3.4.3.27": "SLH-DSA-SHA2-256S",
+		"2.16.840.1.101.3.4.3.28": "SLH-DSA-SHA2-256F",
+		"2.16.840.1.101.3.4.3.29": "FALCON-512",
+		"2.16.840.1.101.3.4.3.30": "FALCON-1024",
+	}
+	return oidMap[oid]
+}
+
+func detectPQCOIDFromError(errMsg string) string {
+	for oid, name := range map[string]string{
+		"2.16.840.1.101.3.4.3.17": "ML-DSA-44",
+		"2.16.840.1.101.3.4.3.18": "ML-DSA-65",
+		"2.16.840.1.101.3.4.3.19": "ML-DSA-87",
+		"2.16.840.1.101.3.4.4.1":  "ML-KEM-512",
+		"2.16.840.1.101.3.4.4.2":  "ML-KEM-768",
+		"2.16.840.1.101.3.4.4.3":  "ML-KEM-1024",
+		"2.16.840.1.101.3.4.3.20": "ML-KEM-512",
+		"2.16.840.1.101.3.4.3.21": "ML-KEM-768",
+		"2.16.840.1.101.3.4.3.22": "ML-KEM-1024",
+		"2.16.840.1.101.3.4.3.23": "SLH-DSA-SHA2-128S",
+		"2.16.840.1.101.3.4.3.24": "SLH-DSA-SHA2-128F",
+		"2.16.840.1.101.3.4.3.25": "SLH-DSA-SHA2-192S",
+		"2.16.840.1.101.3.4.3.26": "SLH-DSA-SHA2-192F",
+		"2.16.840.1.101.3.4.3.27": "SLH-DSA-SHA2-256S",
+		"2.16.840.1.101.3.4.3.28": "SLH-DSA-SHA2-256F",
+		"2.16.840.1.101.3.4.3.29": "FALCON-512",
+		"2.16.840.1.101.3.4.3.30": "FALCON-1024",
+	} {
+		if strings.Contains(errMsg, oid) {
+			return name
+		}
+	}
+	return ""
+}
+
 func parsePrivateKeyData(data []byte, filename string) (*KeyInfo, error) {
 	var keyBytes []byte
 	var encoding string
@@ -56,7 +151,8 @@ func parsePrivateKeyData(data []byte, filename string) (*KeyInfo, error) {
 			pem.TypeECPrivateKey,
 			pem.TypePrivateKey,
 			pem.TypeRSAPrivateKey,
-			pem.TypeMLKEMPrivateKey)
+			pem.TypeMLKEMPrivateKey,
+			pem.TypeMLDSAPrivateKey)
 		if !ok {
 			return nil, fmt.Errorf("no private key found in %s", filename)
 		}
@@ -66,7 +162,9 @@ func parsePrivateKeyData(data []byte, filename string) (*KeyInfo, error) {
 		encoding = "DER"
 	}
 
-	return parseKey(keyBytes, filename, encoding)
+	pqcTypes := detectPQCFromText(data)
+
+	return parseKey(keyBytes, filename, encoding, pqcTypes)
 }
 
 func ParsePrivateKey(filePath string) (*KeyInfo, error) {
@@ -82,7 +180,7 @@ func ParsePrivateKeyFromBytes(data []byte, filename string) (*KeyInfo, error) {
 	return parsePrivateKeyData(data, filename)
 }
 
-func parseKey(der []byte, filename string, encoding string) (*KeyInfo, error) {
+func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (*KeyInfo, error) {
 	info := &KeyInfo{Filename: filename, Encoding: encoding}
 
 	key, err := x509.ParsePKCS1PrivateKey(der)
@@ -157,14 +255,71 @@ func parseKey(der []byte, filename string, encoding string) (*KeyInfo, error) {
 					info.Bits = 0
 				}
 			}
+			for _, pqc := range pqcTypes {
+				info.IsQuantumSafe = true
+				if strings.HasPrefix(pqc, "ML-DSA") {
+					info.KeyType = "ML-DSA"
+					info.Algorithm = "ML-DSA"
+					info.Bits = 0
+				} else if strings.HasPrefix(pqc, "ML-KEM") {
+					info.KeyType = "ML-KEM"
+					info.Algorithm = "ML-KEM"
+					info.Bits = 0
+				} else if strings.HasPrefix(pqc, "SLH-DSA") {
+					info.KeyType = "SLH-DSA"
+					info.Algorithm = "SLH-DSA"
+					info.Bits = 0
+				} else if strings.HasPrefix(pqc, "FALCON") {
+					info.KeyType = "FALCON"
+					info.Algorithm = "FALCON"
+					info.Bits = 0
+				}
+			}
 			return info, nil
 		}
 	}
 
-	if pkcs8Key != nil {
-		info.KeyType = fmt.Sprintf("%T", pkcs8Key)
-	} else {
-		info.KeyType = fmt.Sprintf("%T", pkcs8Key)
+	pqcOID := detectPQCOIDFromError(err.Error())
+	if pqcOID != "" {
+		info.IsQuantumSafe = true
+		info.Algorithm = "PKCS#8"
+		info.Bits = 0
+		if strings.HasPrefix(pqcOID, "ML-DSA") {
+			info.KeyType = "ML-DSA"
+		} else if strings.HasPrefix(pqcOID, "ML-KEM") {
+			info.KeyType = "ML-KEM"
+		} else if strings.HasPrefix(pqcOID, "SLH-DSA") {
+			info.KeyType = "SLH-DSA"
+		} else if strings.HasPrefix(pqcOID, "FALCON") {
+			info.KeyType = "FALCON"
+		}
+		return info, nil
+	}
+
+	info.KeyType = fmt.Sprintf("%T", pkcs8Key)
+	info.Algorithm = "Unknown"
+	for _, pqc := range pqcTypes {
+		info.IsQuantumSafe = true
+		if strings.HasPrefix(pqc, "ML-DSA") {
+			info.KeyType = "ML-DSA"
+			info.Algorithm = "ML-DSA"
+			info.Bits = 0
+		} else if strings.HasPrefix(pqc, "ML-KEM") {
+			info.KeyType = "ML-KEM"
+			info.Algorithm = "ML-KEM"
+			info.Bits = 0
+		} else if strings.HasPrefix(pqc, "SLH-DSA") {
+			info.KeyType = "SLH-DSA"
+			info.Algorithm = "SLH-DSA"
+			info.Bits = 0
+		} else if strings.HasPrefix(pqc, "FALCON") {
+			info.KeyType = "FALCON"
+			info.Algorithm = "FALCON"
+			info.Bits = 0
+		}
+	}
+	if info.KeyType == "<nil>" && len(pqcTypes) > 0 {
+		info.IsQuantumSafe = true
 	}
 	return info, nil
 }
