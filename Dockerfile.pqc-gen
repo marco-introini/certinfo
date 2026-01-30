@@ -1,0 +1,10 @@
+FROM openquantumsafe/oqs-ossl3:latest
+
+WORKDIR /certs
+
+COPY generate_pqc_certs.sh /generate.sh
+RUN chmod +x /generate.sh
+
+VOLUME ["/output"]
+
+ENTRYPOINT ["/bin/sh", "/generate.sh"]
