@@ -20,8 +20,9 @@ mkdir -p "${CERT_DIR}/san-types"
 mkdir -p "${CERT_DIR}/client"
 mkdir -p "${CERT_DIR}/wildcard"
 mkdir -p "${CERT_DIR}/p12-format"
+mkdir -p "${CERT_DIR}/with-text"
 
-echo "[1/6] Generating RSA certificates..."
+echo "[1/7] Generating RSA certificates..."
 cd "${CERT_DIR}/traditional/rsa"
 
 openssl genrsa -out ca-rsa2048.key 2048
@@ -60,7 +61,7 @@ rm -f *.csr *.srl
 echo "[2/6] Generating ECDSA certificates..."
 cd "${CERT_DIR}/traditional/ecdsa"
 
-openssl ecparamv1 -gen -name prime256key -out ca-ecdsa-p256.key
+openssl ecparam -name prime256v1 -genkey -out ca-ecdsa-p256.key
 openssl req -new -x509 -days 365 -key ca-ecdsa-p256.key -out ca-ecdsa-p256.crt \
     -subj "/CN=Test ECDSA P-256 CA/O=Test/C=IT"
 
@@ -192,7 +193,6 @@ openssl x509 -req -days 365 -in san-rsa.csr \
     -CA "${CERT_DIR}/traditional/rsa/ca-rsa2048.crt" \
     -CAkey "${CERT_DIR}/traditional/rsa/ca-rsa2048.key" \
     -CAcreateserial -out san-rsa.crt -extfile san.cnf -extensions ext
-rm -f *.csr *.srl san.cnf
 
 openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 \
     -out san-ecdsa.key -pass pass:test
@@ -264,7 +264,7 @@ openssl x509 -req -days 365 -in wildcard.csr \
     -CAcreateserial -out wildcard.crt -extfile wildcard.cnf -extensions ext
 rm -f *.csr *.srl wildcard.cnf
 
-echo "[6/6] Generating PKCS#12 files..."
+echo "[6/7] Generating PKCS#12 files..."
 cd "${CERT_DIR}/p12-format"
 
 openssl pkcs12 -export -out server-rsa2048.pfx \
@@ -277,7 +277,23 @@ openssl pkcs12 -export -out server-ecdsa-p256.pfx \
     -in "${CERT_DIR}/traditional/ecdsa/server-ecdsa-p256.crt" \
     -CAfile "${CERT_DIR}/traditional/ecdsa/ca-ecdsa-p256.crt" -passout pass:testpass
 
-echo "[7/7] Decrypting password-protected keys for tests..."
+echo "[7/7] Generating certificates with text prefix for PEM parsing tests..."
+cd "${CERT_DIR}/with-text"
+
+cat > ca-with-text.crt << 'TEXTEOF'
+Certificate for use with TLS servers
+Authority: Test CA
+Issuer: Test CA
+TEXTEOF
+cat "${CERT_DIR}/traditional/rsa/ca-rsa2048.crt" >> ca-with-text.crt
+
+cat > ca-with-text.key << 'TEXTKEYEOF'
+Private Key - RSA 2048 bit
+Do not share this key
+TEXTKEYEOF
+cat "${CERT_DIR}/traditional/rsa/ca-rsa2048.key" >> ca-with-text.key
+
+echo "[8/8] Decrypting password-protected keys for tests..."
 cd "${CERT_DIR}/san-types"
 openssl rsa -in san-rsa.key -out san-rsa.key.dec -passin pass:test 2>/dev/null && mv san-rsa.key.dec san-rsa.key || true
 openssl pkcs8 -in san-ecdsa.key -out san-ecdsa.key.dec -passin pass:test -nocrypt 2>/dev/null && mv san-ecdsa.key.dec san-ecdsa.key || true
@@ -327,6 +343,9 @@ Wildcard certificates (*.test.local)
 
 ### p12-format/
 PKCS#12 format certificates (password: testpass)
+
+### with-text/
+Certificates and keys with descriptive text prefix before PEM blocks (for testing PEM parsing)
 
 ## Usage
 

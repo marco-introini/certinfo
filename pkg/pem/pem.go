@@ -8,7 +8,7 @@ import (
 var pemHeader = []byte("-----BEGIN")
 
 func IsPEM(data []byte) bool {
-	return bytes.HasPrefix(data, pemHeader)
+	return bytes.Contains(data, pemHeader)
 }
 
 type BlockType string
