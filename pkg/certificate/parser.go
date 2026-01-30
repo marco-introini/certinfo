@@ -113,10 +113,11 @@ func getPQCTypesFromAlgorithmName(algoName string) []string {
 func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error) {
 	var cert *x509.Certificate
 	var encoding string
+	var certBytes []byte
 
 	if pem.IsPEM(data) {
-		certBytes, ok := pem.FindBlock(data, pem.TypeCertificate)
-		if !ok {
+		certBytes, _ = pem.FindBlock(data, pem.TypeCertificate)
+		if certBytes == nil {
 			return nil, fmt.Errorf("no certificate found in %s", filePath)
 		}
 		var err error
@@ -126,6 +127,7 @@ func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error
 		}
 		encoding = "PEM"
 	} else {
+		certBytes = data
 		var err error
 		cert, err = x509.ParseCertificate(data)
 		if err != nil {
@@ -135,6 +137,38 @@ func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error
 	}
 
 	algoName := cert.SignatureAlgorithm.String()
+
+	isQuantumSafe := isPQCSignatureAlgorithmByName(algoName)
+	pqcTypes := getPQCTypesFromAlgorithmName(algoName)
+
+	if cert.SignatureAlgorithm == x509.UnknownSignatureAlgorithm {
+		certStr := string(certBytes)
+		if strings.Contains(certStr, "ML-DSA-44") {
+			pqcTypes = append(pqcTypes, "ML-DSA-44")
+		}
+		if strings.Contains(certStr, "ML-DSA-65") {
+			pqcTypes = append(pqcTypes, "ML-DSA-65")
+		}
+		if strings.Contains(certStr, "ML-DSA-87") {
+			pqcTypes = append(pqcTypes, "ML-DSA-87")
+		}
+		if strings.Contains(certStr, "ML-KEM-512") || strings.Contains(certStr, "MLKEM512") {
+			pqcTypes = append(pqcTypes, "ML-KEM-512")
+		}
+		if strings.Contains(certStr, "ML-KEM-768") || strings.Contains(certStr, "MLKEM768") {
+			pqcTypes = append(pqcTypes, "ML-KEM-768")
+		}
+		if strings.Contains(certStr, "ML-KEM-1024") || strings.Contains(certStr, "MLKEM1024") {
+			pqcTypes = append(pqcTypes, "ML-KEM-1024")
+		}
+		if strings.Contains(certStr, "SLH-DSA") {
+			pqcTypes = append(pqcTypes, "SLH-DSA")
+		}
+		if strings.Contains(certStr, "FN-DSA") {
+			pqcTypes = append(pqcTypes, "FN-DSA")
+		}
+		isQuantumSafe = len(pqcTypes) > 0
+	}
 
 	info := &CertificateInfo{
 		Filename:      filePath,
@@ -147,8 +181,8 @@ func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error
 		Algorithm:     algoName,
 		SerialNumber:  cert.SerialNumber.String(),
 		IsCA:          cert.IsCA,
-		IsQuantumSafe: isPQCSignatureAlgorithmByName(algoName),
-		PQCTypes:      getPQCTypesFromAlgorithmName(algoName),
+		IsQuantumSafe: isQuantumSafe,
+		PQCTypes:      pqcTypes,
 	}
 	info.KeyType, info.Bits = getKeyBitsAndType(cert.PublicKey)
 
