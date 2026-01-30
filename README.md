@@ -11,7 +11,7 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, ECDSA, Ed25519, 
 - Recursive directory scanning support
 - Supports both PEM and DER encoding formats
 - Post-Quantum Cryptography (PQC) support
-- Test suite with 42+ tests covering all functionality
+- Test suite with 100+ tests covering all functionality
 
 ## Supported Formats
 
