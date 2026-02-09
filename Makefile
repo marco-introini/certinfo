@@ -12,6 +12,9 @@ build:
 release-snapshot:
 	goreleaser release --snapshot --skip=publish
 
+release:
+	./scripts/release.sh
+
 clean:
 	rm -rf dist/
 	rm certinfo
