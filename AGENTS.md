@@ -129,6 +129,7 @@ See guidelines in @.ai/testing_guidelines.md
 - JSON output via `encoding/json.MarshalIndent`
 - Format selection via `OutputFormat` type (`FormatTable`, `FormatJSON`)
 - Consistent field ordering in struct definitions and output
+- EKU (Extended Key Usage) displayed only in detailed certificate output (`cert` command), not in summary tables
 
 ### External Dependencies
 

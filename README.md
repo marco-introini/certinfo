@@ -11,26 +11,28 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, ECDSA, Ed25519, 
 - Recursive directory scanning support
 - Supports both PEM and DER encoding formats
 - Post-Quantum Cryptography (PQC) support
+- Extended Key Usage (EKU) display for detailed certificate analysis
 - Test suite with 100+ tests covering all functionality
 
 ## Supported Formats
 
 ### Certificate Types
 
-| Type | Description | Key Sizes/Curves |
-|------|-------------|------------------|
-| RSA | RSA certificates | 2048, 3072, 4096 bits |
-| ECDSA | Elliptic Curve DSA | P-256, P-384, P-521 |
-| Ed25519 | EdDSA certificates | 256 bits (fixed) |
-| Ed448 | EdDSA certificates | 448 bits (fixed) |
-| PQC | Post-Quantum Cryptography | ML-DSA, SLH-DSA, FN-DSA |
-| Self-signed | Certificates without CA | All above types |
+| Type        | Description               | Key Sizes/Curves        |
+| ----------- | ------------------------- | ----------------------- |
+| RSA         | RSA certificates          | 2048, 3072, 4096 bits   |
+| ECDSA       | Elliptic Curve DSA        | P-256, P-384, P-521     |
+| Ed25519     | EdDSA certificates        | 256 bits (fixed)        |
+| Ed448       | EdDSA certificates        | 448 bits (fixed)        |
+| PQC         | Post-Quantum Cryptography | ML-DSA, SLH-DSA, FN-DSA |
+| Self-signed | Certificates without CA   | All above types         |
 
 Note: Ed25519 and Ed448 certificates are supported for parsing. Key type is detected based on the public key algorithm.
 
 ### Certificate Extensions
 
 - Subject Alternative Names (SAN)
+- Extended Key Usage (EKU) - Server Authentication, Client Authentication, Code Signing, Email Protection, etc.
 - Wildcard certificates (`*.example.com`)
 - Client certificates (mTLS with `clientAuth` EKU)
 - CA certificates
@@ -43,20 +45,20 @@ Note: Ed25519 and Ed448 certificates are supported for parsing. Key type is dete
 
 ### Private Key Formats
 
-| Format | Type | Notes |
-|--------|------|-------|
-| PKCS#1 | RSA, EC | Traditional format (`BEGIN RSA PRIVATE KEY`) |
-| PKCS#8 | RSA, EC, Ed25519, PQC | Encapsulated format (`BEGIN PRIVATE KEY`) |
-| DER | All | Binary format without PEM headers |
+| Format | Type                  | Notes                                        |
+| ------ | --------------------- | -------------------------------------------- |
+| PKCS#1 | RSA, EC               | Traditional format (`BEGIN RSA PRIVATE KEY`) |
+| PKCS#8 | RSA, EC, Ed25519, PQC | Encapsulated format (`BEGIN PRIVATE KEY`)    |
+| DER    | All                   | Binary format without PEM headers            |
 
 ### Post-Quantum Cryptography (PQC)
 
-| Algorithm | Type | Description |
-|-----------|------|-------------|
-| ML-DSA | Signature | Dilithium signature algorithm (NIST FIPS 204) |
-| SLH-DSA | Signature | Sphincs+ signature algorithm (NIST FIPS 205) |
-| FN-DSA | Signature | Falcon signature algorithm (NIST FIPS 206) |
-| ML-KEM | Key Encapsulation | Kyber KEM algorithm (NIST FIPS 203) |
+| Algorithm | Type              | Description                                   |
+| --------- | ----------------- | --------------------------------------------- |
+| ML-DSA    | Signature         | Dilithium signature algorithm (NIST FIPS 204) |
+| SLH-DSA   | Signature         | Sphincs+ signature algorithm (NIST FIPS 205)  |
+| FN-DSA    | Signature         | Falcon signature algorithm (NIST FIPS 206)    |
+| ML-KEM    | Key Encapsulation | Kyber KEM algorithm (NIST FIPS 203)           |
 
 ### Encodings
 
@@ -133,9 +135,11 @@ certinfo cert <certificate.der>
 ```
 
 **Flags:**
+
 - `-f, --format string` - Output format (table, json) (default: table)
 
 **Example Output:**
+
 ```
 Filename:       certificate.pem
 Encoding:       PEM
@@ -151,6 +155,7 @@ Serial Number:  1234567890abcdef
 Is CA:          false
 Quantum Safe:   false
 SANs:           [example.com www.example.com]
+Ext Key Usage:  [Server Authentication]
 ```
 
 #### `dir` - Summarize Certificates in a Directory
@@ -162,10 +167,12 @@ certinfo dir <directory/>
 ```
 
 **Flags:**
+
 - `-f, --format string` - Output format (table, json) (default: table)
 - `-r, --recursive` - Search recursively through subdirectories
 
 **Example Output:**
+
 ```
 FILENAME          ENCODING  CN          ISSUER        STATUS    QUANTUM SAFE  PQC TYPES
 cert.pem          PEM       example.com  Let's Encrypt  valid     No            -
@@ -183,15 +190,18 @@ certinfo key <key.der>
 ```
 
 **Supports:**
+
 - RSA keys (PKCS#1, PKCS#8)
 - EC keys (P-256, P-384, P-521)
 - Ed25519 keys
 - PQC keys (ML-KEM, ML-DSA, SLH-DSA, FN-DSA)
 
 **Flags:**
+
 - `-f, --format string` - Output format (table, json) (default: table)
 
 **Example Output:**
+
 ```
 Filename:       privatekey.pem
 Encoding:       PEM
@@ -210,10 +220,12 @@ certinfo keydir <directory/>
 ```
 
 **Flags:**
+
 - `-f, --format string` - Output format (table, json) (default: table)
 - `-r, --recursive` - Search recursively through subdirectories
 
 **Example Output:**
+
 ```
 FILENAME              ENCODING  TYPE       BITS    QUANTUM SAFE
 rsa2048.key           PEM       RSA        2048    No
@@ -341,6 +353,7 @@ test_certs/
 - Key parsing (RSA, ECDSA, Ed25519, ML-KEM, ML-DSA, SLH-DSA, FN-DSA)
 - Directory scanning (recursive and non-recursive)
 - SAN and wildcard handling
+- Extended Key Usage (EKU) parsing and display
 - Status detection (valid, expired, expiring soon)
 - PQC algorithm detection
 

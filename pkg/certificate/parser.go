@@ -14,21 +14,23 @@ import (
 )
 
 type CertificateInfo struct {
-	Filename      string
-	Encoding      string
-	CommonName    string
-	Issuer        string
-	Subject       string
-	NotBefore     time.Time
-	NotAfter      time.Time
-	Algorithm     string
-	KeyType       string
-	Bits          int
-	SerialNumber  string
-	SANs          []string
-	IsCA          bool
-	IsQuantumSafe bool
-	PQCTypes      []string
+	Filename           string
+	Encoding           string
+	CommonName         string
+	Issuer             string
+	Subject            string
+	NotBefore          time.Time
+	NotAfter           time.Time
+	Algorithm          string
+	KeyType            string
+	Bits               int
+	SerialNumber       string
+	SANs               []string
+	IsCA               bool
+	ExtKeyUsage        []x509.ExtKeyUsage
+	ExtKeyUsageStrings []string
+	IsQuantumSafe      bool
+	PQCTypes           []string
 }
 
 func getKeyBitsAndType(pub any) (string, int) {
@@ -110,6 +112,41 @@ func getPQCTypesFromAlgorithmName(algoName string) []string {
 	return pqcTypes
 }
 
+func extKeyUsageToString(eku x509.ExtKeyUsage) string {
+	switch eku {
+	case x509.ExtKeyUsageAny:
+		return "Any"
+	case x509.ExtKeyUsageServerAuth:
+		return "Server Authentication"
+	case x509.ExtKeyUsageClientAuth:
+		return "Client Authentication"
+	case x509.ExtKeyUsageCodeSigning:
+		return "Code Signing"
+	case x509.ExtKeyUsageEmailProtection:
+		return "Email Protection"
+	case x509.ExtKeyUsageIPSECEndSystem:
+		return "IPSEC End System"
+	case x509.ExtKeyUsageIPSECTunnel:
+		return "IPSEC Tunnel"
+	case x509.ExtKeyUsageIPSECUser:
+		return "IPSEC User"
+	case x509.ExtKeyUsageTimeStamping:
+		return "Time Stamping"
+	case x509.ExtKeyUsageOCSPSigning:
+		return "OCSP Signing"
+	case x509.ExtKeyUsageMicrosoftServerGatedCrypto:
+		return "Microsoft Server Gated Crypto"
+	case x509.ExtKeyUsageNetscapeServerGatedCrypto:
+		return "Netscape Server Gated Crypto"
+	case x509.ExtKeyUsageMicrosoftCommercialCodeSigning:
+		return "Microsoft Commercial Code Signing"
+	case x509.ExtKeyUsageMicrosoftKernelCodeSigning:
+		return "Microsoft Kernel Code Signing"
+	default:
+		return fmt.Sprintf("Unknown (%d)", eku)
+	}
+}
+
 func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error) {
 	var cert *x509.Certificate
 	var encoding string
@@ -170,19 +207,26 @@ func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error
 		isQuantumSafe = len(pqcTypes) > 0
 	}
 
+	var extKeyUsageStrings []string
+	for _, eku := range cert.ExtKeyUsage {
+		extKeyUsageStrings = append(extKeyUsageStrings, extKeyUsageToString(eku))
+	}
+
 	info := &CertificateInfo{
-		Filename:      filePath,
-		Encoding:      encoding,
-		CommonName:    cert.Subject.CommonName,
-		Issuer:        cert.Issuer.CommonName,
-		Subject:       cert.Subject.String(),
-		NotBefore:     cert.NotBefore,
-		NotAfter:      cert.NotAfter,
-		Algorithm:     algoName,
-		SerialNumber:  cert.SerialNumber.String(),
-		IsCA:          cert.IsCA,
-		IsQuantumSafe: isQuantumSafe,
-		PQCTypes:      pqcTypes,
+		Filename:           filePath,
+		Encoding:           encoding,
+		CommonName:         cert.Subject.CommonName,
+		Issuer:             cert.Issuer.CommonName,
+		Subject:            cert.Subject.String(),
+		NotBefore:          cert.NotBefore,
+		NotAfter:           cert.NotAfter,
+		Algorithm:          algoName,
+		SerialNumber:       cert.SerialNumber.String(),
+		IsCA:               cert.IsCA,
+		ExtKeyUsage:        cert.ExtKeyUsage,
+		ExtKeyUsageStrings: extKeyUsageStrings,
+		IsQuantumSafe:      isQuantumSafe,
+		PQCTypes:           pqcTypes,
 	}
 	info.KeyType, info.Bits = getKeyBitsAndType(cert.PublicKey)
 

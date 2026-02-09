@@ -64,6 +64,9 @@ func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat
 	if len(cert.SANs) > 0 {
 		fmt.Fprintf(w, "SANs:\t%v\n", cert.SANs)
 	}
+	if len(cert.ExtKeyUsageStrings) > 0 {
+		fmt.Fprintf(w, "Ext Key Usage:\t%v\n", cert.ExtKeyUsageStrings)
+	}
 }
 
 func padRight(s string, width int) string {
