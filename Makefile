@@ -1,4 +1,4 @@
-.PHONY: test build install release-snapshot release
+.PHONY: test build release-snapshot release clean
 
 test:
 	go test -parallel=4 ./cmd/... ./pkg/... -v
@@ -12,6 +12,6 @@ build:
 release-snapshot:
 	goreleaser release --snapshot --skip=publish
 
-clear:
+clean:
 	rm -rf dist/
 	rm certinfo
