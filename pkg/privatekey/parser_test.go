@@ -235,3 +235,134 @@ func TestParsePrivateKeyEdgeCases(t *testing.T) {
 		})
 	}
 }
+
+func TestParsePQCPrivateKeys(t *testing.T) {
+	tests := []struct {
+		name     string
+		keyPath  string
+		expected struct {
+			keyType       string
+			bits          int
+			isQuantumSafe bool
+		}
+	}{
+		{
+			name:    "ML-DSA-44",
+			keyPath: "postquantum/standalone/ca-mldsa44.key",
+			expected: struct {
+				keyType       string
+				bits          int
+				isQuantumSafe bool
+			}{
+				keyType:       "ML-DSA",
+				bits:          44,
+				isQuantumSafe: true,
+			},
+		},
+		{
+			name:    "ML-DSA-65",
+			keyPath: "postquantum/standalone/ca-mldsa65.key",
+			expected: struct {
+				keyType       string
+				bits          int
+				isQuantumSafe bool
+			}{
+				keyType:       "ML-DSA",
+				bits:          65,
+				isQuantumSafe: true,
+			},
+		},
+		{
+			name:    "ML-DSA-87",
+			keyPath: "postquantum/standalone/ca-mldsa87.key",
+			expected: struct {
+				keyType       string
+				bits          int
+				isQuantumSafe bool
+			}{
+				keyType:       "ML-DSA",
+				bits:          87,
+				isQuantumSafe: true,
+			},
+		},
+		{
+			name:    "ML-KEM-768",
+			keyPath: "postquantum/standalone/ca-mlkem760.key",
+			expected: struct {
+				keyType       string
+				bits          int
+				isQuantumSafe bool
+			}{
+				keyType:       "ML-KEM",
+				bits:          768,
+				isQuantumSafe: true,
+			},
+		},
+		{
+			name:    "ML-KEM-1024",
+			keyPath: "postquantum/standalone/ca-mlkem1024.key",
+			expected: struct {
+				keyType       string
+				bits          int
+				isQuantumSafe bool
+			}{
+				keyType:       "ML-KEM",
+				bits:          1024,
+				isQuantumSafe: true,
+			},
+		},
+		{
+			name:    "ML-DSA-44 Server",
+			keyPath: "postquantum/standalone/server-mldsa44.key",
+			expected: struct {
+				keyType       string
+				bits          int
+				isQuantumSafe bool
+			}{
+				keyType:       "ML-DSA",
+				bits:          44,
+				isQuantumSafe: true,
+			},
+		},
+		{
+			name:    "Hybrid RSA ML-DSA",
+			keyPath: "postquantum/hybrid-rsa/ca-mldsa.key",
+			expected: struct {
+				keyType       string
+				bits          int
+				isQuantumSafe bool
+			}{
+				keyType:       "ML-DSA",
+				bits:          44,
+				isQuantumSafe: true,
+			},
+		},
+		{
+			name:    "Hybrid ECDSA ML-DSA",
+			keyPath: "postquantum/hybrid-ecdsa/ca-mldsa.key",
+			expected: struct {
+				keyType       string
+				bits          int
+				isQuantumSafe bool
+			}{
+				keyType:       "ML-DSA",
+				bits:          44,
+				isQuantumSafe: true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			key, err := ParsePrivateKey(getTestKeyPath(tt.keyPath))
+			require.NoError(t, err, "failed to parse PQC private key")
+			if tt.expected.keyType != "" {
+				assert.Equal(t, tt.expected.keyType, key.KeyType)
+			}
+			if tt.expected.bits != 0 {
+				assert.Equal(t, tt.expected.bits, key.Bits)
+			}
+			assert.True(t, key.IsQuantumSafe, "expected key to be quantum safe")
+		})
+	}
+}

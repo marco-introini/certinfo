@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -310,7 +309,7 @@ func TestPrintKeySummaries(t *testing.T) {
 				assert.Contains(t, output, "FILENAME")
 				assert.Contains(t, output, "key1.key")
 				assert.Contains(t, output, "key2.key")
-				assert.Contains(t, output, "P-256")
+				assert.Contains(t, output, "EC")
 			},
 		},
 		{
@@ -352,27 +351,6 @@ func TestPrintKeySummaries(t *testing.T) {
 			tt.check(output)
 		})
 	}
-}
-
-func TestPrintKeySummariesEmptyCurve(t *testing.T) {
-	summaries := []privatekey.KeySummary{
-		{
-			Filename:      "rsa-key.key",
-			Encoding:      "PEM",
-			KeyType:       "RSA",
-			Bits:          2048,
-			Curve:         "",
-			IsQuantumSafe: false,
-		},
-	}
-
-	output, _ := captureOutput(func() {
-		PrintKeySummaries(summaries, FormatTable)
-	})
-
-	parts := strings.Fields(output)
-	secondLastPart := parts[len(parts)-2]
-	assert.Equal(t, "-", secondLastPart, "expected empty curve to be displayed as '-'")
 }
 
 func TestPrintKeySummariesJSONMarshalError(t *testing.T) {

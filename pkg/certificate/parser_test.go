@@ -296,3 +296,88 @@ func TestParseCertificateEdgeCases(t *testing.T) {
 		})
 	}
 }
+
+func TestParsePQCertificate(t *testing.T) {
+	tests := []struct {
+		name     string
+		certPath string
+		expected struct {
+			commonName    string
+			issuer        string
+			isQuantumSafe bool
+			pqcTypes      []string
+		}
+	}{
+		{
+			name:     "ML-DSA-44 CA",
+			certPath: "postquantum/standalone/ca-mldsa44.crt",
+			expected: struct {
+				commonName    string
+				issuer        string
+				isQuantumSafe bool
+				pqcTypes      []string
+			}{
+				commonName:    "Test ML-DSA-44 CA",
+				issuer:        "Test ML-DSA-44 CA",
+				isQuantumSafe: true,
+				pqcTypes:      []string{"ML-DSA-44"},
+			},
+		},
+		{
+			name:     "ML-DSA-65 CA",
+			certPath: "postquantum/standalone/ca-mldsa65.crt",
+			expected: struct {
+				commonName    string
+				issuer        string
+				isQuantumSafe bool
+				pqcTypes      []string
+			}{
+				commonName:    "Test ML-DSA-65 CA",
+				issuer:        "Test ML-DSA-65 CA",
+				isQuantumSafe: true,
+				pqcTypes:      []string{"ML-DSA-65"},
+			},
+		},
+		{
+			name:     "ML-DSA-87 CA",
+			certPath: "postquantum/standalone/ca-mldsa87.crt",
+			expected: struct {
+				commonName    string
+				issuer        string
+				isQuantumSafe bool
+				pqcTypes      []string
+			}{
+				commonName:    "Test ML-DSA-87 CA",
+				issuer:        "Test ML-DSA-87 CA",
+				isQuantumSafe: true,
+				pqcTypes:      []string{"ML-DSA-87"},
+			},
+		},
+		{
+			name:     "ML-DSA-44 Server",
+			certPath: "postquantum/standalone/server-mldsa44.crt",
+			expected: struct {
+				commonName    string
+				issuer        string
+				isQuantumSafe bool
+				pqcTypes      []string
+			}{
+				commonName:    "localhost",
+				issuer:        "Test ML-DSA-44 CA",
+				isQuantumSafe: true,
+				pqcTypes:      []string{"ML-DSA-44"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cert, err := ParseCertificate(getTestCertPath(tt.certPath))
+			require.NoError(t, err, "failed to parse PQC certificate")
+			assert.Equal(t, tt.expected.commonName, cert.CommonName)
+			assert.Equal(t, tt.expected.issuer, cert.Issuer)
+			assert.Equal(t, tt.expected.isQuantumSafe, cert.IsQuantumSafe)
+			assert.Equal(t, tt.expected.pqcTypes, cert.PQCTypes)
+		})
+	}
+}

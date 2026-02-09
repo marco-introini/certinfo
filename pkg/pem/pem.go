@@ -23,6 +23,8 @@ const (
 	TypeECPublicKey     BlockType = "EC PUBLIC KEY"
 	TypeMLKEMPrivateKey BlockType = "ML-KEM PRIVATE KEY"
 	TypeMLKEMPublicKey  BlockType = "ML-KEM PUBLIC KEY"
+	TypeMLDSAPrivateKey BlockType = "ML-DSA PRIVATE KEY"
+	TypeMLDSAPublicKey  BlockType = "ML-DSA PUBLIC KEY"
 	TypePQCCertificate  BlockType = "POST-QUANTUM CERTIFICATE"
 )
 
