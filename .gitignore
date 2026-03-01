@@ -1,6 +1,8 @@
 /example-certs/
-/.idea/vcs.xml
+.idea
+.ai
 certinfo
+
 # Added by goreleaser init:
 dist/
 scripts/
