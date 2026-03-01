@@ -1,6 +1,6 @@
 /example-certs/
-.idea
-.ai
+.idea/
+.ai/
 certinfo
 
 # Added by goreleaser init:
