@@ -8,6 +8,7 @@ This directory contains various test certificates for testing certinfo-go.
 Traditional certificates using RSA and ECDSA algorithms.
 
 - **rsa/**: RSA certificates (2048, 3072, 4096 bit)
+- **rsa-encrypted/**: Encrypted RSA keys (password: testpass)
 - **ecdsa/**: ECDSA certificates (P-256, P-384, P-521, Ed25519, Ed448)
 
 ### chain/
