@@ -274,15 +274,35 @@ rm -f *.csr *.srl wildcard.cnf
 echo "[6/7] Generating PKCS#12 files..."
 cd "${CERT_DIR}/p12-format"
 
-openssl pkcs12 -export -out server-rsa2048.pfx \
+openssl pkcs12 -export -legacy -out server-rsa2048.pfx \
     -inkey "${CERT_DIR}/traditional/rsa/server-rsa2048.key" \
     -in "${CERT_DIR}/traditional/rsa/server-rsa2048.crt" \
     -CAfile "${CERT_DIR}/traditional/rsa/ca-rsa2048.crt" -passout pass:testpass
 
-openssl pkcs12 -export -out server-ecdsa-p256.pfx \
+openssl pkcs12 -export -legacy -out server-rsa4096.pfx \
+    -inkey "${CERT_DIR}/traditional/rsa/server-rsa4096.key" \
+    -in "${CERT_DIR}/traditional/rsa/server-rsa4096.crt" \
+    -CAfile "${CERT_DIR}/traditional/rsa/ca-rsa4096.crt" -passout pass:testpass
+
+openssl pkcs12 -export -legacy -out server-ecdsa-p256.pfx \
     -inkey "${CERT_DIR}/traditional/ecdsa/server-ecdsa-p256.key" \
     -in "${CERT_DIR}/traditional/ecdsa/server-ecdsa-p256.crt" \
     -CAfile "${CERT_DIR}/traditional/ecdsa/ca-ecdsa-p256.crt" -passout pass:testpass
+
+openssl pkcs12 -export -legacy -out server-ecdsa-p384.pfx \
+    -inkey "${CERT_DIR}/traditional/ecdsa/server-ecdsa-p384.key" \
+    -in "${CERT_DIR}/traditional/ecdsa/server-ecdsa-p384.crt" \
+    -CAfile "${CERT_DIR}/traditional/ecdsa/ca-ecdsa-p384.crt" -passout pass:testpass
+
+openssl pkcs12 -export -legacy -out server-ecdsa-p521.pfx \
+    -inkey "${CERT_DIR}/traditional/ecdsa/server-ecdsa-p521.key" \
+    -in "${CERT_DIR}/traditional/ecdsa/server-ecdsa-p521.crt" \
+    -CAfile "${CERT_DIR}/traditional/ecdsa/ca-ecdsa-p521.crt" -passout pass:testpass
+
+openssl pkcs12 -export -legacy -out server-ed25519.pfx \
+    -inkey "${CERT_DIR}/traditional/ecdsa/server-ed25519.key" \
+    -in "${CERT_DIR}/traditional/ecdsa/server-ed25519.crt" \
+    -CAfile "${CERT_DIR}/traditional/ecdsa/ca-ed25519.crt" -passout pass:testpass
 
 echo "[7/7] Generating certificates with text prefix for PEM parsing tests..."
 cd "${CERT_DIR}/with-text"

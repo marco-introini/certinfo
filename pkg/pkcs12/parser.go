@@ -40,7 +40,9 @@ func parseP12Data(data []byte, filename string, password string) (*P12Info, erro
 	if err != nil {
 		if strings.Contains(err.Error(), "incorrect password") ||
 			strings.Contains(err.Error(), "invalid password") ||
-			strings.Contains(err.Error(), "pkcs12: decryption error") {
+			strings.Contains(err.Error(), "pkcs12: decryption error") ||
+			strings.Contains(err.Error(), "decryption password incorrect") ||
+			strings.Contains(err.Error(), "password incorrect") {
 			return nil, ErrEncryptedP12
 		}
 		return nil, fmt.Errorf("invalid PKCS#12 file: %w", err)

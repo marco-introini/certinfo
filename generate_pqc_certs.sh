@@ -21,6 +21,7 @@ mkdir -p "${CERT_DIR}/standalone"
 mkdir -p "${CERT_DIR}/hybrid"
 mkdir -p "${CERT_DIR}/hybrid-rsa"
 mkdir -p "${CERT_DIR}/hybrid-ecdsa"
+mkdir -p "${CERT_DIR}/p12"
 
 check_pqc_available() {
     if openssl genpkey -algorithm MLDSA44 -out /dev/null 2>/dev/null; then
@@ -162,6 +163,35 @@ if check_pqc_available; then
     echo "  - Hybrid ECDSA server certificate created"
 else
     echo "  - PQC not available, skipping hybrid ECDSA"
+fi
+
+echo ""
+echo "[5/5] Generating PKCS#12 files for PQC certificates..."
+
+cd "${CERT_DIR}/p12"
+
+if [ -f "${CERT_DIR}/standalone/server-mldsa44.crt" ] && [ -f "${CERT_DIR}/standalone/server-mldsa44.key" ]; then
+    openssl pkcs12 -export -legacy -out server-mldsa44.pfx \
+        -inkey "${CERT_DIR}/standalone/server-mldsa44.key" \
+        -in "${CERT_DIR}/standalone/server-mldsa44.crt" \
+        -CAfile "${CERT_DIR}/standalone/ca-mldsa44.crt" -passout pass:testpass
+    echo "  - ML-DSA-44 PKCS#12 created"
+fi
+
+if [ -f "${CERT_DIR}/hybrid-rsa/server-rsa.crt" ] && [ -f "${CERT_DIR}/hybrid-rsa/server.key" ]; then
+    openssl pkcs12 -export -legacy -out server-hybrid-rsa.pfx \
+        -inkey "${CERT_DIR}/hybrid-rsa/server.key" \
+        -in "${CERT_DIR}/hybrid-rsa/server-rsa.crt" \
+        -CAfile "${CERT_DIR}/hybrid-rsa/ca-rsa.crt" -passout pass:testpass
+    echo "  - Hybrid RSA PKCS#12 created"
+fi
+
+if [ -f "${CERT_DIR}/hybrid-ecdsa/server-ecdsa.crt" ] && [ -f "${CERT_DIR}/hybrid-ecdsa/server.key" ]; then
+    openssl pkcs12 -export -legacy -out server-hybrid-ecdsa.pfx \
+        -inkey "${CERT_DIR}/hybrid-ecdsa/server.key" \
+        -in "${CERT_DIR}/hybrid-ecdsa/server-ecdsa.crt" \
+        -CAfile "${CERT_DIR}/hybrid-ecdsa/ca-ecdsa.crt" -passout pass:testpass
+    echo "  - Hybrid ECDSA PKCS#12 created"
 fi
 
 echo ""
