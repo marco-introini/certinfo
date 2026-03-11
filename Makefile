@@ -1,4 +1,4 @@
-.PHONY: test build release-snapshot release clean
+.PHONY: test build release-snapshot release clean create-test-certificates
 
 test:
 	go test -parallel=4 ./cmd/... ./pkg/... -v
@@ -15,6 +15,11 @@ release-snapshot:
 release:
 	./scripts/release.sh
 
+create-test-certificates:
+	rm -fr ./test_certs/*
+	./generate_certs.sh
+	./generate_pqc_certs.sh
+	
 clean:
 	rm -rf dist/
 	rm certinfo

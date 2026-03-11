@@ -12,6 +12,7 @@ rm -rf "${CERT_DIR}"
 mkdir -p "${CERT_DIR}"
 
 mkdir -p "${CERT_DIR}/traditional/rsa"
+mkdir -p "${CERT_DIR}/traditional/rsa-encrypted"
 mkdir -p "${CERT_DIR}/traditional/ecdsa"
 mkdir -p "${CERT_DIR}/chain"
 mkdir -p "${CERT_DIR}/selfsigned"
@@ -57,6 +58,12 @@ openssl req -new -key server-rsa4096.key -out server-rsa4096.csr \
 openssl x509 -req -days 365 -in server-rsa4096.csr \
     -CA ca-rsa4096.crt -CAkey ca-rsa4096.key -CAcreateserial -out server-rsa4096.crt
 rm -f *.csr *.srl
+
+echo "[1b/7] Generating encrypted RSA keys..."
+cd "${CERT_DIR}/traditional/rsa-encrypted"
+
+openssl genrsa 2048 2>/dev/null | openssl rsa -aes256 -passout pass:testpass -traditional -out ca-rsa2048-encrypted.key
+echo "  - Encrypted RSA key generated (password: testpass)"
 
 echo "[2/6] Generating ECDSA certificates..."
 cd "${CERT_DIR}/traditional/ecdsa"
@@ -321,6 +328,7 @@ This directory contains various test certificates for testing certinfo-go.
 Traditional certificates using RSA and ECDSA algorithms.
 
 - **rsa/**: RSA certificates (2048, 3072, 4096 bit)
+- **rsa-encrypted/**: Encrypted RSA keys (password: testpass)
 - **ecdsa/**: ECDSA certificates (P-256, P-384, P-521, Ed25519, Ed448)
 
 ### chain/
