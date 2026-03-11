@@ -16,6 +16,7 @@ type BlockType string
 const (
 	TypeCertificate     BlockType = "CERTIFICATE"
 	TypePrivateKey      BlockType = "PRIVATE KEY"
+	TypeEncryptedKey    BlockType = "ENCRYPTED PRIVATE KEY"
 	TypeECPrivateKey    BlockType = "EC PRIVATE KEY"
 	TypeRSAPrivateKey   BlockType = "RSA PRIVATE KEY"
 	TypePublicKey       BlockType = "PUBLIC KEY"

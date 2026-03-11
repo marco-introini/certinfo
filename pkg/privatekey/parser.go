@@ -6,12 +6,13 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/marco-introini/certinfo/pkg/pem"
+	certpem "github.com/marco-introini/certinfo/pkg/pem"
 )
 
 type KeyInfo struct {
@@ -161,43 +162,89 @@ func getPQCBits(pqcType string) int {
 	return bitMap[pqcType]
 }
 
-func parsePrivateKeyData(data []byte, filename string) (*KeyInfo, error) {
-	var keyBytes []byte
+var ErrEncryptedKey = fmt.Errorf("private key is encrypted, password required")
+
+func decryptKey(block *pem.Block, password string) ([]byte, error) {
+	isEncrypted := x509.IsEncryptedPEMBlock(block) || block.Type == string(certpem.TypeEncryptedKey)
+
+	if isEncrypted {
+		if password == "" {
+			return nil, ErrEncryptedKey
+		}
+		decrypted, err := x509.DecryptPEMBlock(block, []byte(password))
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt key: %w", err)
+		}
+		return decrypted, nil
+	}
+
+	return block.Bytes, nil
+}
+
+func parsePrivateKeyData(data []byte, filename string, password string) (*KeyInfo, error) {
+	var block *pem.Block
 	var encoding string
 
-	if pem.IsPEM(data) {
-		var ok bool
-		keyBytes, ok = pem.FindBlock(data,
-			pem.TypeECPrivateKey,
-			pem.TypePrivateKey,
-			pem.TypeRSAPrivateKey,
-			pem.TypeMLKEMPrivateKey,
-			pem.TypeMLDSAPrivateKey)
-		if !ok {
+	if certpem.IsPEM(data) {
+		var rest []byte
+		var found bool
+		for {
+			block, rest = pem.Decode(data)
+			if block == nil {
+				break
+			}
+			blockType := block.Type
+			if blockType == string(certpem.TypeEncryptedKey) ||
+				blockType == string(certpem.TypeECPrivateKey) ||
+				blockType == string(certpem.TypePrivateKey) ||
+				blockType == string(certpem.TypeRSAPrivateKey) ||
+				blockType == string(certpem.TypeMLKEMPrivateKey) ||
+				blockType == string(certpem.TypeMLDSAPrivateKey) {
+				found = true
+				break
+			}
+			data = rest
+		}
+		if !found {
 			return nil, fmt.Errorf("no private key found in %s", filename)
 		}
 		encoding = "PEM"
 	} else {
-		keyBytes = data
 		encoding = "DER"
+		return parseKey(data, filename, encoding, nil)
+	}
+
+	decryptedKeyBytes, err := decryptKey(block, password)
+	if err != nil {
+		return nil, err
 	}
 
 	pqcTypes := detectPQCFromText(data)
 
-	return parseKey(keyBytes, filename, encoding, pqcTypes)
+	return parseKey(decryptedKeyBytes, filename, encoding, pqcTypes)
 }
 
-func ParsePrivateKey(filePath string) (*KeyInfo, error) {
+func ParsePrivateKey(filePath string, password ...string) (*KeyInfo, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	return parsePrivateKeyData(data, filePath)
+	pwd := ""
+	if len(password) > 0 {
+		pwd = password[0]
+	}
+
+	return parsePrivateKeyData(data, filePath, pwd)
 }
 
-func ParsePrivateKeyFromBytes(data []byte, filename string) (*KeyInfo, error) {
-	return parsePrivateKeyData(data, filename)
+func ParsePrivateKeyFromBytes(data []byte, filename string, password ...string) (*KeyInfo, error) {
+	pwd := ""
+	if len(password) > 0 {
+		pwd = password[0]
+	}
+
+	return parsePrivateKeyData(data, filename, pwd)
 }
 
 func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (*KeyInfo, error) {
@@ -338,13 +385,18 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 	return info, nil
 }
 
-func SummarizeDirectory(dirPath string) ([]KeySummary, error) {
+func SummarizeDirectory(dirPath string, password ...string) ([]KeySummary, error) {
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
 
 	summaries := make([]KeySummary, 0, len(entries))
+
+	pwd := ""
+	if len(password) > 0 {
+		pwd = password[0]
+	}
 
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -353,7 +405,7 @@ func SummarizeDirectory(dirPath string) ([]KeySummary, error) {
 
 		filePath := filepath.Join(dirPath, entry.Name())
 
-		key, err := ParsePrivateKey(filePath)
+		key, err := ParsePrivateKey(filePath, pwd)
 		if err != nil {
 			continue
 		}
@@ -371,8 +423,13 @@ func SummarizeDirectory(dirPath string) ([]KeySummary, error) {
 	return summaries, nil
 }
 
-func SummarizeDirectoryRecursive(dirPath string) ([]KeySummary, error) {
+func SummarizeDirectoryRecursive(dirPath string, password ...string) ([]KeySummary, error) {
 	summaries := make([]KeySummary, 0, 32)
+
+	pwd := ""
+	if len(password) > 0 {
+		pwd = password[0]
+	}
 
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -385,7 +442,7 @@ func SummarizeDirectoryRecursive(dirPath string) ([]KeySummary, error) {
 
 		relPath, _ := filepath.Rel(dirPath, path)
 
-		key, err := ParsePrivateKey(path)
+		key, err := ParsePrivateKey(path, pwd)
 		if err != nil {
 			return nil
 		}

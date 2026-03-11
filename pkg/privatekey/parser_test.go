@@ -366,3 +366,63 @@ func TestParsePQCPrivateKeys(t *testing.T) {
 		})
 	}
 }
+
+func TestParseEncryptedPrivateKey(t *testing.T) {
+	tests := []struct {
+		name            string
+		keyPath         string
+		password        string
+		expectedKeyType string
+		expectedBits    int
+		expectError     bool
+		expectEncrypted bool
+	}{
+		{
+			name:            "RSA encrypted with correct password",
+			keyPath:         "traditional/rsa-encrypted/ca-rsa2048-encrypted.key",
+			password:        "testpass",
+			expectedKeyType: "RSA",
+			expectedBits:    2048,
+			expectError:     false,
+		},
+		{
+			name:            "RSA encrypted without password",
+			keyPath:         "traditional/rsa-encrypted/ca-rsa2048-encrypted.key",
+			password:        "",
+			expectError:     true,
+			expectEncrypted: true,
+		},
+		{
+			name:        "RSA encrypted with wrong password",
+			keyPath:     "traditional/rsa-encrypted/ca-rsa2048-encrypted.key",
+			password:    "wrongpassword",
+			expectError: true,
+		},
+		{
+			name:            "RSA unencrypted",
+			keyPath:         "traditional/rsa/ca-rsa2048.key",
+			password:        "",
+			expectedKeyType: "RSA",
+			expectedBits:    2048,
+			expectError:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			key, err := ParsePrivateKey(getTestKeyPath(tt.keyPath), tt.password)
+
+			if tt.expectError {
+				require.Error(t, err)
+				if tt.expectEncrypted {
+					assert.Equal(t, ErrEncryptedKey, err)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedKeyType, key.KeyType)
+			assert.Equal(t, tt.expectedBits, key.Bits)
+		})
+	}
+}

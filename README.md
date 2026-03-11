@@ -7,6 +7,7 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, ECDSA, Ed25519, 
 - Analyze single X.509 certificate files with detailed information
 - Scan directories for certificates with summary output
 - Parse private keys (RSA, ECDSA, Ed25519, ML-KEM, ML-DSA, SLH-DSA, FN-DSA) with key characteristics
+- Support for password-protected/encrypted private keys (interactive or via flag)
 - Output in table or JSON format
 - Recursive directory scanning support
 - Supports both PEM and DER encoding formats
@@ -45,11 +46,12 @@ Note: Ed25519 and Ed448 certificates are supported for parsing. Key type is dete
 
 ### Private Key Formats
 
-| Format | Type                  | Notes                                        |
-| ------ | --------------------- | -------------------------------------------- |
-| PKCS#1 | RSA, EC               | Traditional format (`BEGIN RSA PRIVATE KEY`) |
-| PKCS#8 | RSA, EC, Ed25519, PQC | Encapsulated format (`BEGIN PRIVATE KEY`)    |
-| DER    | All                   | Binary format without PEM headers            |
+| Format    | Type                  | Notes                                               |
+| --------- | --------------------- | --------------------------------------------------- |
+| PKCS#1    | RSA, EC               | Traditional format (`BEGIN RSA PRIVATE KEY`)        |
+| PKCS#8    | RSA, EC, Ed25519, PQC | Encapsulated format (`BEGIN PRIVATE KEY`)           |
+| DER       | All                   | Binary format without PEM headers                   |
+| Encrypted | RSA, EC               | Password-protected keys (prompted or via `-p` flag) |
 
 ### Post-Quantum Cryptography (PQC)
 
@@ -137,38 +139,6 @@ certinfo cert <certificate.der>
 **Flags:**
 
 - `-f, --format string` - Output format (table, json) (default: table)
-
-**Example Output:**
-
-```
-Filename:       certificate.pem
-Encoding:       PEM
-Common Name:    example.com
-Issuer:         Let's Encrypt
-Subject:        CN=example.com
-Not Before:     2024-01-01 00:00:00
-Not After:      2025-01-01 00:00:00
-Algorithm:      SHA256-RSA
-Key Type:       RSA
-Bits:           2048
-Serial Number:  1234567890abcdef
-Is CA:          false
-Quantum Safe:   false
-SANs:           [example.com www.example.com]
-Ext Key Usage:  [Server Authentication]
-```
-
-#### `dir` - Summarize Certificates in a Directory
-
-List all certificates in a directory with summary information (CN and expiration).
-
-```bash
-certinfo dir <directory/>
-```
-
-**Flags:**
-
-- `-f, --format string` - Output format (table, json) (default: table)
 - `-r, --recursive` - Search recursively through subdirectories
 
 **Example Output:**
@@ -199,6 +169,7 @@ certinfo key <key.der>
 **Flags:**
 
 - `-f, --format string` - Output format (table, json) (default: table)
+- `-p, --password string` - Password for encrypted private keys
 
 **Example Output:**
 
@@ -209,6 +180,15 @@ Key Type:       RSA
 Algorithm:      PKCS#1 v1.5
 Bits:           2048
 Quantum Safe:   false
+```
+
+**Encrypted Keys:**
+
+For password-protected private keys, use the `-p` flag or omit the password to be prompted interactively:
+
+```bash
+certinfo key encrypted-key.pem -p mypassword
+certinfo key encrypted-key.pem  # Will prompt for password
 ```
 
 #### `keydir` - Summarize Private Keys in a Directory
@@ -291,6 +271,19 @@ certinfo key /path/to/privatekey.pem
 certinfo key /path/to/privatekey.der
 ```
 
+### Check an Encrypted/Protected Private Key
+
+```bash
+certinfo key /path/to/encrypted-key.pem -p mypassword
+certinfo key /path/to/encrypted-key.pem  # Interactive password prompt
+```
+
+### Check Private Keys in a Directory (with encrypted keys)
+
+```bash
+certinfo keydir /path/to/keys/ -p mypassword
+```
+
 ### Export Certificate Summary as JSON
 
 ```bash
@@ -326,6 +319,7 @@ The project includes a comprehensive set of test certificates in `test_certs/`:
 test_certs/
 ├── traditional/
 │   ├── rsa/           # RSA 2048, 3072, 4096 (CA + server)
+│   ├── rsa-encrypted/ # Encrypted RSA keys (password: testpass)
 │   └── ecdsa/         # P-256, P-384, P-521, Ed25519, Ed448
 ├── chain/             # Root → Intermediate → Server
 ├── selfsigned/        # Self-signed RSA + ECDSA
@@ -351,6 +345,7 @@ test_certs/
 
 - Certificate parsing (RSA, ECDSA, Ed25519, Ed448, PQC)
 - Key parsing (RSA, ECDSA, Ed25519, ML-KEM, ML-DSA, SLH-DSA, FN-DSA)
+- Encrypted key parsing (password-protected keys)
 - Directory scanning (recursive and non-recursive)
 - SAN and wildcard handling
 - Extended Key Usage (EKU) parsing and display
