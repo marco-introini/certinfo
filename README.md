@@ -64,10 +64,10 @@ Note: Ed25519 and Ed448 certificates are supported for parsing. Key type is dete
 **Supported:**
 - RSA certificates with private keys
 - ECDSA (P-256, P-384, P-521) certificates with private keys
-- Hybrid certificates (RSA/ECDSA + PQC)
+- Hybrid certificates (RSA/ECDSA + PQC) in PKCS#12
 
-**Not supported (library limitation):**
-- Pure PQC certificates (ML-DSA standalone) in PKCS#12
+**Not supported:**
+- Pure PQC keys/certs in PKCS#12
 - Ed25519/Ed448 private keys in PKCS#12
 
 **Note:** PKCS#12 files created with OpenSSL may require the `-legacy` flag for compatibility:
