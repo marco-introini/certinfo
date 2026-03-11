@@ -60,7 +60,7 @@ func isPQCSignatureAlgorithmByName(algoName string) bool {
 		strings.Contains(lowerAlgo, "fn-dsa") ||
 		strings.Contains(lowerAlgo, "falcon") ||
 		strings.Contains(lowerAlgo, "rainbow") ||
-		strings.Contains(lowerAlgo, " sphincs") ||
+		strings.Contains(lowerAlgo, "sphincs") ||
 		strings.Contains(lowerAlgo, "dilithium") ||
 		strings.Contains(lowerAlgo, "kyber")
 }
@@ -90,18 +90,20 @@ func getPQCTypesFromAlgorithmName(algoName string) []string {
 		}
 	}
 	if strings.Contains(lowerAlgo, "fn-dsa") || strings.Contains(lowerAlgo, "falcon") {
-		if strings.Contains(lowerAlgo, "128") {
+		if strings.Contains(lowerAlgo, "128") || strings.Contains(lowerAlgo, "512") {
 			pqcTypes = append(pqcTypes, "FN-DSA-128")
 		} else if strings.Contains(lowerAlgo, "192") {
 			pqcTypes = append(pqcTypes, "FN-DSA-192")
-		} else if strings.Contains(lowerAlgo, "256") {
+		} else if strings.Contains(lowerAlgo, "256") || strings.Contains(lowerAlgo, "1024") {
 			pqcTypes = append(pqcTypes, "FN-DSA-256")
 		} else {
 			pqcTypes = append(pqcTypes, "FN-DSA")
 		}
 	}
 	if strings.Contains(lowerAlgo, "ml-kem") || strings.Contains(lowerAlgo, "kyber") {
-		if strings.Contains(lowerAlgo, "768") || strings.Contains(lowerAlgo, "512") {
+		if strings.Contains(lowerAlgo, "512") {
+			pqcTypes = append(pqcTypes, "ML-KEM-512")
+		} else if strings.Contains(lowerAlgo, "768") {
 			pqcTypes = append(pqcTypes, "ML-KEM-768")
 		} else if strings.Contains(lowerAlgo, "1024") {
 			pqcTypes = append(pqcTypes, "ML-KEM-1024")

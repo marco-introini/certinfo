@@ -381,3 +381,69 @@ func TestParsePQCertificate(t *testing.T) {
 		})
 	}
 }
+
+func TestIsPQCSignatureAlgorithmByName(t *testing.T) {
+	tests := []struct {
+		name     string
+		algo     string
+		expected bool
+	}{
+		{"ML-DSA", "ml-dsa-44", true},
+		{"SLH-DSA", "slh-dsa-sha2-128s", true},
+		{"FN-DSA", "fn-dsa", true},
+		{"FALCON", "falcon-512", true},
+		{"Rainbow", "rainbow", true},
+		{"SPHINCS", "sphincs-sha2-128s", true},
+		{"Dilithium", "dilithium2", true},
+		{"Kyber", "kyber512", true},
+		{"RSA", "rsaEncryption", false},
+		{"ECDSA", "ecdsa-with-sha256", false},
+		{"Ed25519", "ed25519", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isPQCSignatureAlgorithmByName(tt.algo)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetPQCTypesFromAlgorithmName(t *testing.T) {
+	tests := []struct {
+		name     string
+		algoName string
+		expected []string
+	}{
+		{"ML-DSA-44", "ml-dsa-44", []string{"ML-DSA-44"}},
+		{"ML-DSA-65", "ml-dsa-45", []string{"ML-DSA-65"}},
+		{"ML-DSA-87", "ml-dsa-87", []string{"ML-DSA-87"}},
+		{"ML-DSA-44 dilithium", "dilithium2", []string{"ML-DSA-44"}},
+		{"ML-DSA-65 dilithium", "dilithium3", []string{"ML-DSA-65"}},
+		{"ML-DSA-87 dilithium", "dilithium5", []string{"ML-DSA-87"}},
+		{"SLH-DSA-128", "slh-dsa-sha2-128s", []string{"SLH-DSA-128"}},
+		{"SLH-DSA-192", "slh-dsa-sha2-192s", []string{"SLH-DSA-192"}},
+		{"SLH-DSA-256", "slh-dsa-sha2-256s", []string{"SLH-DSA-256"}},
+		{"SLH-DSA generic", "slh-dsa", []string{"SLH-DSA"}},
+		{"FN-DSA-128", "fn-dsa-128", []string{"FN-DSA-128"}},
+		{"FN-DSA-192", "fn-dsa-192", []string{"FN-DSA-192"}},
+		{"FN-DSA-256", "fn-dsa-256", []string{"FN-DSA-256"}},
+		{"FN-DSA generic", "fn-dsa", []string{"FN-DSA"}},
+		{"FALCON-512", "falcon-512", []string{"FN-DSA-128"}},
+		{"FALCON-1024", "falcon-1024", []string{"FN-DSA-256"}},
+		{"ML-KEM-512", "ml-kem-512", []string{"ML-KEM-512"}},
+		{"ML-KEM-768", "ml-kem-768", []string{"ML-KEM-768"}},
+		{"ML-KEM-1024", "ml-kem-1024", []string{"ML-KEM-1024"}},
+		{"ML-KEM generic", "ml-kem", []string{"ML-KEM"}},
+		{"Kyber", "kyber512", []string{"ML-KEM-512"}},
+		{"RSA", "rsaEncryption", nil},
+		{"ECDSA", "ecdsa-with-sha256", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getPQCTypesFromAlgorithmName(tt.algoName)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

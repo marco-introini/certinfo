@@ -100,9 +100,9 @@ func detectPQCFromOID(oid string) string {
 		"2.16.840.1.101.3.4.3.17": "ML-DSA-44",
 		"2.16.840.1.101.3.4.3.18": "ML-DSA-65",
 		"2.16.840.1.101.3.4.3.19": "ML-DSA-87",
-		"2.16.840.1.101.3.4.3.20": "ML-KEM-512",
-		"2.16.840.1.101.3.4.3.21": "ML-KEM-768",
-		"2.16.840.1.101.3.4.3.22": "ML-KEM-1024",
+		"2.16.840.1.101.3.4.4.1":  "ML-KEM-512",
+		"2.16.840.1.101.3.4.4.2":  "ML-KEM-768",
+		"2.16.840.1.101.3.4.4.3":  "ML-KEM-1024",
 		"2.16.840.1.101.3.4.3.23": "SLH-DSA-SHA2-128S",
 		"2.16.840.1.101.3.4.3.24": "SLH-DSA-SHA2-128F",
 		"2.16.840.1.101.3.4.3.25": "SLH-DSA-SHA2-192S",
@@ -116,16 +116,13 @@ func detectPQCFromOID(oid string) string {
 }
 
 func detectPQCOIDFromError(errMsg string) string {
-	for oid, name := range map[string]string{
+	oidMap := map[string]string{
 		"2.16.840.1.101.3.4.3.17": "ML-DSA-44",
 		"2.16.840.1.101.3.4.3.18": "ML-DSA-65",
 		"2.16.840.1.101.3.4.3.19": "ML-DSA-87",
 		"2.16.840.1.101.3.4.4.1":  "ML-KEM-512",
 		"2.16.840.1.101.3.4.4.2":  "ML-KEM-768",
 		"2.16.840.1.101.3.4.4.3":  "ML-KEM-1024",
-		"2.16.840.1.101.3.4.3.20": "ML-KEM-512",
-		"2.16.840.1.101.3.4.3.21": "ML-KEM-768",
-		"2.16.840.1.101.3.4.3.22": "ML-KEM-1024",
 		"2.16.840.1.101.3.4.3.23": "SLH-DSA-SHA2-128S",
 		"2.16.840.1.101.3.4.3.24": "SLH-DSA-SHA2-128F",
 		"2.16.840.1.101.3.4.3.25": "SLH-DSA-SHA2-192S",
@@ -134,7 +131,8 @@ func detectPQCOIDFromError(errMsg string) string {
 		"2.16.840.1.101.3.4.3.28": "SLH-DSA-SHA2-256F",
 		"2.16.840.1.101.3.4.3.29": "FALCON-512",
 		"2.16.840.1.101.3.4.3.30": "FALCON-1024",
-	} {
+	}
+	for oid, name := range oidMap {
 		if strings.Contains(errMsg, oid) {
 			return name
 		}
@@ -158,6 +156,9 @@ func getPQCBits(pqcType string) int {
 		"SLH-DSA-SHA2-256F": 256,
 		"FALCON-512":        512,
 		"FALCON-1024":       1024,
+		"FN-DSA-128":        128,
+		"FN-DSA-192":        192,
+		"FN-DSA-256":        256,
 	}
 	return bitMap[pqcType]
 }

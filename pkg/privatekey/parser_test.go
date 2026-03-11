@@ -287,7 +287,7 @@ func TestParsePQCPrivateKeys(t *testing.T) {
 		},
 		{
 			name:    "ML-KEM-768",
-			keyPath: "postquantum/standalone/ca-mlkem760.key",
+			keyPath: "postquantum/standalone/ca-mlkem768.key",
 			expected: struct {
 				keyType       string
 				bits          int
@@ -423,6 +423,140 @@ func TestParseEncryptedPrivateKey(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedKeyType, key.KeyType)
 			assert.Equal(t, tt.expectedBits, key.Bits)
+		})
+	}
+}
+
+func TestIsPQCCheck(t *testing.T) {
+	tests := []struct {
+		name     string
+		algo     string
+		expected bool
+	}{
+		{"ML-KEM", "ml-kem-768", true},
+		{"ML-DSA", "ml-dsa-44", true},
+		{"SLH-DSA", "slh-dsa-sha2-128s", true},
+		{"FN-DSA", "fn-dsa", true},
+		{"FALCON", "falcon-512", true},
+		{"Dilithium", "dilithium2", true},
+		{"Kyber", "kyber512", true},
+		{"SPHINCS", "sphincs-sha2-128s", true},
+		{"Rainbow", "rainbow", true},
+		{"RSA", "rsaEncryption", false},
+		{"ECDSA", "ecdsa-with-sha256", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isPQCCheck(tt.algo)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestDetectPQCFromOID(t *testing.T) {
+	tests := []struct {
+		name     string
+		oid      string
+		expected string
+	}{
+		{"ML-DSA-44", "2.16.840.1.101.3.4.3.17", "ML-DSA-44"},
+		{"ML-DSA-65", "2.16.840.1.101.3.4.3.18", "ML-DSA-65"},
+		{"ML-DSA-87", "2.16.840.1.101.3.4.3.19", "ML-DSA-87"},
+		{"ML-KEM-512", "2.16.840.1.101.3.4.4.1", "ML-KEM-512"},
+		{"ML-KEM-768", "2.16.840.1.101.3.4.4.2", "ML-KEM-768"},
+		{"ML-KEM-1024", "2.16.840.1.101.3.4.4.3", "ML-KEM-1024"},
+		{"SLH-DSA-128S", "2.16.840.1.101.3.4.3.23", "SLH-DSA-SHA2-128S"},
+		{"SLH-DSA-128F", "2.16.840.1.101.3.4.3.24", "SLH-DSA-SHA2-128F"},
+		{"FALCON-512", "2.16.840.1.101.3.4.3.29", "FALCON-512"},
+		{"FALCON-1024", "2.16.840.1.101.3.4.3.30", "FALCON-1024"},
+		{"Unknown", "1.2.3.4.5", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := detectPQCFromOID(tt.oid)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetPQCBits(t *testing.T) {
+	tests := []struct {
+		name     string
+		pqcType  string
+		expected int
+	}{
+		{"ML-DSA-44", "ML-DSA-44", 44},
+		{"ML-DSA-65", "ML-DSA-65", 65},
+		{"ML-DSA-87", "ML-DSA-87", 87},
+		{"ML-KEM-512", "ML-KEM-512", 512},
+		{"ML-KEM-768", "ML-KEM-768", 768},
+		{"ML-KEM-1024", "ML-KEM-1024", 1024},
+		{"SLH-DSA-128S", "SLH-DSA-SHA2-128S", 128},
+		{"SLH-DSA-128F", "SLH-DSA-SHA2-128F", 128},
+		{"SLH-DSA-192S", "SLH-DSA-SHA2-192S", 192},
+		{"SLH-DSA-256F", "SLH-DSA-SHA2-256F", 256},
+		{"FALCON-512", "FALCON-512", 512},
+		{"FALCON-1024", "FALCON-1024", 1024},
+		{"FN-DSA-128", "FN-DSA-128", 128},
+		{"FN-DSA-192", "FN-DSA-192", 192},
+		{"FN-DSA-256", "FN-DSA-256", 256},
+		{"Unknown", "UNKNOWN", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getPQCBits(tt.pqcType)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestDetectPQCOIDFromError(t *testing.T) {
+	tests := []struct {
+		name     string
+		errMsg   string
+		expected string
+	}{
+		{"ML-DSA-44 OID", "asn1: structure error: oid 2.16.840.1.101.3.4.3.17", "ML-DSA-44"},
+		{"ML-KEM-512 OID", "unknown oid 2.16.840.1.101.3.4.4.1", "ML-KEM-512"},
+		{"ML-KEM-768 OID", "error parsing 2.16.840.1.101.3.4.4.2", "ML-KEM-768"},
+		{"ML-KEM-1024 OID", "oid 2.16.840.1.101.3.4.4.3 not recognized", "ML-KEM-1024"},
+		{"SLH-DSA OID", "2.16.840.1.101.3.4.3.23", "SLH-DSA-SHA2-128S"},
+		{"FALCON OID", "2.16.840.1.101.3.4.3.29", "FALCON-512"},
+		{"No OID", "plain RSA key", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := detectPQCOIDFromError(tt.errMsg)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestDetectPQCFromText(t *testing.T) {
+	tests := []struct {
+		name     string
+		data     string
+		expected []string
+	}{
+		{"ML-DSA-44", "-----BEGIN PRIVATE KEY-----\nML-DSA-44\n-----END PRIVATE KEY-----", []string{"ML-DSA-44"}},
+		{"ML-DSA-65", "-----BEGIN PRIVATE KEY-----\nMLDSA65\n-----END PRIVATE KEY-----", []string{"ML-DSA-65"}},
+		{"ML-KEM-512", "-----BEGIN PRIVATE KEY-----\nMLKEM512\n-----END PRIVATE KEY-----", []string{"ML-KEM-512"}},
+		{"ML-KEM-768", "-----BEGIN PRIVATE KEY-----\nML-KEM-768\n-----END PRIVATE KEY-----", []string{"ML-KEM-768"}},
+		{"ML-KEM-1024", "-----BEGIN PRIVATE KEY-----\nML-KEM-1024\n-----END PRIVATE KEY-----", []string{"ML-KEM-1024"}},
+		{"SLH-DSA", "-----BEGIN PRIVATE KEY-----\nSLH-DSA-SHA2-256S\n-----END PRIVATE KEY-----", []string{"SLH-DSA-SHA2-256S"}},
+		{"FALCON-512", "-----BEGIN PRIVATE KEY-----\nFALCON-512\n-----END PRIVATE KEY-----", []string{"FALCON-512"}},
+		{"Multiple", "-----BEGIN PRIVATE KEY-----\nML-DSA-44 ML-KEM-768\n-----END PRIVATE KEY-----", []string{"ML-DSA-44", "ML-KEM-768"}},
+		{"None", "-----BEGIN PRIVATE KEY-----\nRSA-KEY\n-----END PRIVATE KEY-----", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := detectPQCFromText([]byte(tt.data))
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
