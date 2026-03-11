@@ -98,9 +98,9 @@ echo "[2/4] Generating ML-KEM keys (for key encapsulation, not certificates)..."
 
 cd "${CERT_DIR}/standalone"
 
-if openssl genpkey -algorithm ML_KEM -out ca-mlkem760.key -pkeyopt ml_kem_parameter_set:760 2>/dev/null || \
-   openssl genpkey -algorithm mlkem768 -out ca-mlkem760.key 2>/dev/null; then
-    echo "  - ML-KEM-760 key generated"
+if openssl genpkey -algorithm ML_KEM -out ca-mlkem768.key -pkeyopt ml_kem_parameter_set:768 2>/dev/null || \
+   openssl genpkey -algorithm mlkem768 -out ca-mlkem768.key 2>/dev/null; then
+    echo "  - ML-KEM-768 key generated"
 fi
 
 if openssl genpkey -algorithm ML_KEM -out ca-mlkem1024.key -pkeyopt ml_kem_parameter_set:1024 2>/dev/null || \
