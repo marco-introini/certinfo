@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/marco-introini/certinfo/pkg/certificate"
+	"github.com/marco-introini/certinfo/pkg/pkcs12"
 	"github.com/marco-introini/certinfo/pkg/privatekey"
 )
 
@@ -269,5 +270,75 @@ func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 			}
 		}
 		fmt.Println()
+	}
+}
+
+type p12Summary struct {
+	Filename    string
+	Encoding    string
+	CertCount   int
+	KeyCount    int
+	CommonName  string
+	Issuer      string
+	Status      string
+	QuantumSafe string
+	PQCTypes    []string
+}
+
+func PrintP12Info(p12 *pkcs12.P12Info, format OutputFormat) {
+	if format == FormatJSON {
+		type jsonOutput struct {
+			Filename         string                        `json:"filename"`
+			Encoding         string                        `json:"encoding"`
+			CertificateCount int                           `json:"certificateCount"`
+			PrivateKeyCount  int                           `json:"privateKeyCount"`
+			Certificates     []certificate.CertificateInfo `json:"certificates"`
+			PrivateKeys      []privatekey.KeyInfo          `json:"privateKeys"`
+		}
+		out := jsonOutput{
+			Filename:         p12.Filename,
+			Encoding:         p12.Encoding,
+			CertificateCount: p12.CertificateCount,
+			PrivateKeyCount:  p12.PrivateKeyCount,
+			Certificates:     []certificate.CertificateInfo{},
+			PrivateKeys:      []privatekey.KeyInfo{},
+		}
+		for _, c := range p12.Certificates {
+			out.Certificates = append(out.Certificates, *c.Cert)
+		}
+		for _, k := range p12.PrivateKeys {
+			out.PrivateKeys = append(out.PrivateKeys, *k.Key)
+		}
+		jsonBytes, err := json.MarshalIndent(out, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error marshaling JSON: %v\n", err)
+			return
+		}
+		fmt.Println(string(jsonBytes))
+		return
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	defer w.Flush()
+
+	fmt.Fprintf(w, "Filename:\t%s\n", p12.Filename)
+	fmt.Fprintf(w, "Encoding:\t%s\n", p12.Encoding)
+	fmt.Fprintf(w, "Certificate Count:\t%d\n", p12.CertificateCount)
+	fmt.Fprintf(w, "Private Key Count:\t%d\n", p12.PrivateKeyCount)
+	fmt.Fprintf(w, "\n")
+
+	for i, c := range p12.Certificates {
+		fmt.Fprintf(w, "--- Certificate %d ---\n", i+1)
+		PrintCertificateInfo(c.Cert, format)
+		if c.HasPrivateKey {
+			fmt.Fprintf(w, "Has Private Key:\tYes\n")
+		}
+		fmt.Fprintf(w, "\n")
+	}
+
+	for i, k := range p12.PrivateKeys {
+		fmt.Fprintf(w, "--- Private Key %d ---\n", i+1)
+		PrintKeyInfo(k.Key, format)
+		fmt.Fprintf(w, "\n")
 	}
 }
