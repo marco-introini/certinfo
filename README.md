@@ -7,7 +7,9 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, ECDSA, Ed25519, 
 - Analyze single X.509 certificate files with detailed information
 - Scan directories for certificates with summary output
 - Parse private keys (RSA, ECDSA, Ed25519, ML-KEM, ML-DSA, SLH-DSA, FN-DSA) with key characteristics
+- Parse PKCS#12 (.p12/.pfx) files containing certificates and private keys
 - Support for password-protected/encrypted private keys (interactive or via flag)
+- Support for password-protected PKCS#12 files (via `-p` flag)
 - Output in table or JSON format
 - Recursive directory scanning support
 - Supports both PEM and DER encoding formats
@@ -52,6 +54,26 @@ Note: Ed25519 and Ed448 certificates are supported for parsing. Key type is dete
 | PKCS#8    | RSA, EC, Ed25519, PQC | Encapsulated format (`BEGIN PRIVATE KEY`)           |
 | DER       | All                   | Binary format without PEM headers                   |
 | Encrypted | RSA, EC               | Password-protected keys (prompted or via `-p` flag) |
+
+### PKCS#12 Files
+
+| Type       | Description                                    | Notes                          |
+| ---------- | -----------------------------------------------| ------------------------------ |
+| PKCS#12    | Combined certificate and private key bundle   | Password required via `-p` flag |
+
+**Supported:**
+- RSA certificates with private keys
+- ECDSA (P-256, P-384, P-521) certificates with private keys
+- Hybrid certificates (RSA/ECDSA + PQC)
+
+**Not supported (library limitation):**
+- Pure PQC certificates (ML-DSA standalone) in PKCS#12
+- Ed25519/Ed448 private keys in PKCS#12
+
+**Note:** PKCS#12 files created with OpenSSL may require the `-legacy` flag for compatibility:
+```bash
+openssl pkcs12 -export -legacy -out bundle.pfx -inkey key.pem -in cert.pem
+```
 
 ### Post-Quantum Cryptography (PQC)
 
@@ -215,6 +237,61 @@ ml-dsa.key            PEM       ML-DSA     44      Yes
 ml-kem.key            PEM       ML-KEM     768     Yes
 ```
 
+#### `p12` - Analyze a PKCS#12 File
+
+Show detailed information about a PKCS#12 (.p12/.pfx) file containing certificates and private keys.
+
+```bash
+certinfo p12 <file.p12>
+```
+
+**Flags:**
+
+- `-f, --format string` - Output format (table, json) (default: table)
+- `-p, --password string` - Password for PKCS#12 file (required)
+
+**Example:**
+
+```bash
+certinfo p12 bundle.p12 -p mypassword
+```
+
+**Example Output:**
+
+```
+Filename:           bundle.p12
+Encoding:           PKCS#12
+Certificate Count:  1
+Private Key Count:  1
+
+--- Certificate 1 ---
+Filename:       bundle.p12
+Encoding:       DER
+Common Name:    localhost
+Issuer:         My CA
+Not Before:     2026-01-01 00:00:00
+Not After:      2027-01-01 00:00:00
+Algorithm:      SHA256-RSA
+Bits:           2048
+Serial Number:  1234567890
+Is CA:          false
+Quantum Safe:   false
+Has Private Key:  Yes
+
+--- Private Key 1 ---
+Filename:      bundle.p12
+Encoding:      PKCS#12
+Key Type:      RSA
+Algorithm:     PKCS#1 v1.5
+Bits:          2048
+Quantum Safe:  false
+```
+
+**Note:** PKCS#12 files created with OpenSSL may require the `-legacy` flag:
+```bash
+openssl pkcs12 -export -legacy -out bundle.p12 -inkey key.pem -in cert.pem
+```
+
 ### Global Flags
 
 - `-h, --help` - Help for any command
@@ -297,6 +374,19 @@ certinfo cert /path/to/certificate.pem --no-color
 certinfo dir ./certs/ -c
 ```
 
+### Check a PKCS#12 File
+
+```bash
+certinfo p12 /path/to/bundle.p12 -p mypassword
+certinfo p12 /path/to/bundle.pfx -p mypassword --format json
+```
+
+### Generate Compatible PKCS#12 with OpenSSL
+
+```bash
+openssl pkcs12 -export -legacy -out bundle.p12 -inkey key.pem -in cert.pem
+```
+
 ## Build
 
 ```bash
@@ -328,8 +418,19 @@ test_certs/
 ├── client/            # Client certificates (mTLS)
 ├── wildcard/          # Wildcard certificates (*.test.local)
 ├── p12-format/        # PKCS#12 bundles (password: testpass)
+│   ├── server-rsa2048.pfx
+│   ├── server-rsa4096.pfx
+│   ├── server-ecdsa-p256.pfx
+│   ├── server-ecdsa-p384.pfx
+│   ├── server-ecdsa-p521.pfx
+│   └── server-ed25519.pfx
 └── postquantum/       # PQC certificates and keys
+    └── p12/           # PKCS#12 with hybrid certificates
+        ├── server-hybrid-rsa.pfx
+        └── server-hybrid-ecdsa.pfx
 ```
+
+**PKCS#12 test files** are generated with OpenSSL using `-legacy` flag for compatibility.
 
 ### Regenerating Test Certificates
 
@@ -345,7 +446,9 @@ test_certs/
 
 - Certificate parsing (RSA, ECDSA, Ed25519, Ed448, PQC)
 - Key parsing (RSA, ECDSA, Ed25519, ML-KEM, ML-DSA, SLH-DSA, FN-DSA)
+- PKCS#12 parsing (RSA, ECDSA certificates with private keys)
 - Encrypted key parsing (password-protected keys)
+- PKCS#12 password handling (correct, wrong, missing)
 - Directory scanning (recursive and non-recursive)
 - SAN and wildcard handling
 - Extended Key Usage (EKU) parsing and display
