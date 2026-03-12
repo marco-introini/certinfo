@@ -290,6 +290,8 @@ func PrintP12Info(p12 *pkcs12.P12Info, format OutputFormat) {
 		type jsonOutput struct {
 			Filename         string                        `json:"filename"`
 			Encoding         string                        `json:"encoding"`
+			MacAlgorithm     string                        `json:"macAlgorithm"`
+			KdfAlgorithm     string                        `json:"kdfAlgorithm"`
 			CertificateCount int                           `json:"certificateCount"`
 			PrivateKeyCount  int                           `json:"privateKeyCount"`
 			Certificates     []certificate.CertificateInfo `json:"certificates"`
@@ -298,6 +300,8 @@ func PrintP12Info(p12 *pkcs12.P12Info, format OutputFormat) {
 		out := jsonOutput{
 			Filename:         p12.Filename,
 			Encoding:         p12.Encoding,
+			MacAlgorithm:     p12.MacAlgorithm,
+			KdfAlgorithm:     p12.KdfAlgorithm,
 			CertificateCount: p12.CertificateCount,
 			PrivateKeyCount:  p12.PrivateKeyCount,
 			Certificates:     []certificate.CertificateInfo{},
@@ -323,6 +327,12 @@ func PrintP12Info(p12 *pkcs12.P12Info, format OutputFormat) {
 
 	fmt.Fprintf(w, "Filename:\t%s\n", p12.Filename)
 	fmt.Fprintf(w, "Encoding:\t%s\n", p12.Encoding)
+	if p12.MacAlgorithm != "" {
+		fmt.Fprintf(w, "MAC Algorithm:\t%s\n", p12.MacAlgorithm)
+	}
+	if p12.KdfAlgorithm != "" {
+		fmt.Fprintf(w, "KDF Algorithm:\t%s\n", p12.KdfAlgorithm)
+	}
 	fmt.Fprintf(w, "Certificate Count:\t%d\n", p12.CertificateCount)
 	fmt.Fprintf(w, "Private Key Count:\t%d\n", p12.PrivateKeyCount)
 	fmt.Fprintf(w, "\n")
