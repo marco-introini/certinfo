@@ -288,24 +288,30 @@ type p12Summary struct {
 func PrintP12Info(p12 *pkcs12.P12Info, format OutputFormat) {
 	if format == FormatJSON {
 		type jsonOutput struct {
-			Filename         string                        `json:"filename"`
-			Encoding         string                        `json:"encoding"`
-			MacAlgorithm     string                        `json:"macAlgorithm"`
-			KdfAlgorithm     string                        `json:"kdfAlgorithm"`
-			CertificateCount int                           `json:"certificateCount"`
-			PrivateKeyCount  int                           `json:"privateKeyCount"`
-			Certificates     []certificate.CertificateInfo `json:"certificates"`
-			PrivateKeys      []privatekey.KeyInfo          `json:"privateKeys"`
+			Filename                string                        `json:"filename"`
+			Encoding                string                        `json:"encoding"`
+			MacAlgorithm            string                        `json:"macAlgorithm"`
+			MacIterations           int                           `json:"macIterations"`
+			KdfAlgorithm            string                        `json:"kdfAlgorithm"`
+			KeyEncryptionAlgorithm  string                        `json:"keyEncryptionAlgorithm"`
+			CertEncryptionAlgorithm string                        `json:"certEncryptionAlgorithm"`
+			CertificateCount        int                           `json:"certificateCount"`
+			PrivateKeyCount         int                           `json:"privateKeyCount"`
+			Certificates            []certificate.CertificateInfo `json:"certificates"`
+			PrivateKeys             []privatekey.KeyInfo          `json:"privateKeys"`
 		}
 		out := jsonOutput{
-			Filename:         p12.Filename,
-			Encoding:         p12.Encoding,
-			MacAlgorithm:     p12.MacAlgorithm,
-			KdfAlgorithm:     p12.KdfAlgorithm,
-			CertificateCount: p12.CertificateCount,
-			PrivateKeyCount:  p12.PrivateKeyCount,
-			Certificates:     []certificate.CertificateInfo{},
-			PrivateKeys:      []privatekey.KeyInfo{},
+			Filename:                p12.Filename,
+			Encoding:                p12.Encoding,
+			MacAlgorithm:            p12.MacAlgorithm,
+			MacIterations:           p12.MacIterations,
+			KdfAlgorithm:            p12.KdfAlgorithm,
+			KeyEncryptionAlgorithm:  p12.KeyEncryptionAlgorithm,
+			CertEncryptionAlgorithm: p12.CertEncryptionAlgorithm,
+			CertificateCount:        p12.CertificateCount,
+			PrivateKeyCount:         p12.PrivateKeyCount,
+			Certificates:            []certificate.CertificateInfo{},
+			PrivateKeys:             []privatekey.KeyInfo{},
 		}
 		for _, c := range p12.Certificates {
 			out.Certificates = append(out.Certificates, *c.Cert)
@@ -328,10 +334,20 @@ func PrintP12Info(p12 *pkcs12.P12Info, format OutputFormat) {
 	fmt.Fprintf(w, "Filename:\t%s\n", p12.Filename)
 	fmt.Fprintf(w, "Encoding:\t%s\n", p12.Encoding)
 	if p12.MacAlgorithm != "" {
-		fmt.Fprintf(w, "MAC Algorithm:\t%s\n", p12.MacAlgorithm)
+		if p12.MacIterations > 1 {
+			fmt.Fprintf(w, "MAC Algorithm:\t%s (%d iter)\n", p12.MacAlgorithm, p12.MacIterations)
+		} else {
+			fmt.Fprintf(w, "MAC Algorithm:\t%s\n", p12.MacAlgorithm)
+		}
 	}
 	if p12.KdfAlgorithm != "" {
 		fmt.Fprintf(w, "KDF Algorithm:\t%s\n", p12.KdfAlgorithm)
+	}
+	if p12.KeyEncryptionAlgorithm != "" {
+		fmt.Fprintf(w, "Key Encryption:\t%s\n", p12.KeyEncryptionAlgorithm)
+	}
+	if p12.CertEncryptionAlgorithm != "" {
+		fmt.Fprintf(w, "Cert Encryption:\t%s\n", p12.CertEncryptionAlgorithm)
 	}
 	fmt.Fprintf(w, "Certificate Count:\t%d\n", p12.CertificateCount)
 	fmt.Fprintf(w, "Private Key Count:\t%d\n", p12.PrivateKeyCount)

@@ -24,52 +24,167 @@ type pfxPdu struct {
 }
 
 type digestInfo struct {
-	AlgorithmIdentifier asn1.RawValue
-	Digest              asn1.RawValue
+	DigestAlgorithm asn1.RawValue
+	Digest          []byte
 }
 
-func getMacAlgorithm(data []byte) string {
+func getMacAlgorithmAndIterations(data []byte) (string, int) {
 	var pdu pfxPdu
 	_, err := asn1.Unmarshal(data, &pdu)
 	if err != nil || len(pdu.MacData.Bytes) == 0 {
-		return ""
+		return "", 0
 	}
 
-	macDataBytes := pdu.MacData.Bytes
+	// Use FullBytes to include the ASN.1 tag and length for proper parsing
+	macDataBytes := pdu.MacData.FullBytes
 
+	// MacData structure per RFC 7292:
+	// SEQUENCE {
+	//     mac DigestInfo,
+	//     macSalt OCTET STRING,
+	//     iterations INTEGER DEFAULT 1
+	// }
 	type macDataContent struct {
-		Digest     digestInfo `asn1:"tag:0"`
-		MacSalt    asn1.RawValue
-		Iterations asn1.RawValue
+		Mac        digestInfo
+		MacSalt    []byte
+		Iterations int `asn1:"optional,default:1"`
 	}
 
 	var macParsed macDataContent
-	macRest, err := asn1.Unmarshal(macDataBytes, &macParsed)
-	if err != nil || len(macRest) > 0 {
+	_, err = asn1.Unmarshal(macDataBytes, &macParsed)
+	if err != nil {
+		// Try parsing just the DigestInfo
 		var digest digestInfo
 		_, err = asn1.Unmarshal(macDataBytes, &digest)
-		if err != nil || len(digest.AlgorithmIdentifier.Bytes) == 0 {
-			return ""
+		if err != nil || len(digest.DigestAlgorithm.FullBytes) == 0 {
+			return "", 0
 		}
 		var oid asn1.ObjectIdentifier
-		_, err = asn1.Unmarshal(digest.AlgorithmIdentifier.Bytes, &oid)
+		_, err = asn1.Unmarshal(digest.DigestAlgorithm.FullBytes, &oid)
 		if err != nil {
-			return ""
+			return "", 0
 		}
-		return oidToName(oid.String())
+		return oidToName(oid.String()), 1 // Default iteration
 	}
 
-	if len(macParsed.Digest.AlgorithmIdentifier.Bytes) == 0 {
-		return ""
+	if len(macParsed.Mac.DigestAlgorithm.FullBytes) == 0 {
+		return "", 0
 	}
 
-	var oid asn1.ObjectIdentifier
-	_, err = asn1.Unmarshal(macParsed.Digest.AlgorithmIdentifier.Bytes, &oid)
+	// DigestAlgorithm contains AlgorithmIdentifier which is a SEQUENCE { OID, parameters }
+	// We need to extract the OID from within this SEQUENCE
+	type algorithmIdentifier struct {
+		Algorithm  asn1.ObjectIdentifier
+		Parameters asn1.RawValue `asn1:"optional"`
+	}
+
+	var algoId algorithmIdentifier
+	_, err = asn1.Unmarshal(macParsed.Mac.DigestAlgorithm.FullBytes, &algoId)
 	if err != nil {
-		return ""
+		// Fallback: try to find OID bytes directly
+		return extractOIDFromBytes(macParsed.Mac.DigestAlgorithm.FullBytes), macParsed.Iterations
 	}
 
-	return oidToName(oid.String())
+	return oidToName(algoId.Algorithm.String()), macParsed.Iterations
+}
+
+func extractOIDFromBytes(data []byte) string {
+	// Look for OID tag (0x06) followed by length
+	for i := 0; i < len(data)-2; i++ {
+		if data[i] == 0x06 {
+			length := int(data[i+1])
+			if i+2+length <= len(data) {
+				oidBytes := append([]byte{0x06, byte(length)}, data[i+2:i+2+length]...)
+				var oid asn1.ObjectIdentifier
+				if _, err := asn1.Unmarshal(oidBytes, &oid); err == nil {
+					return oidToName(oid.String())
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func getMacAlgorithm(data []byte) string {
+	algo, _ := getMacAlgorithmAndIterations(data)
+	return algo
+}
+
+func getMacIterations(data []byte) int {
+	_, iterations := getMacAlgorithmAndIterations(data)
+	return iterations
+}
+
+func getKeyEncryptionAlgorithm(data []byte) string {
+	// Check for legacy PBE with 3DES first (most common in legacy P12)
+	// pbeWithSHA1And3-KeyTripleDES-CBC = 1.2.840.113549.1.12.1.3
+	pbe3DESBytes := []byte{0x06, 0x0b, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x0c, 0x01, 0x03}
+	if findOIDBytes(data, pbe3DESBytes) {
+		return "3-Key TripleDES (PBE)"
+	}
+
+	// Check for modern AES encryption via PBES2
+	// aes256-CBC = 2.16.840.1.101.3.4.1.42
+	aes256CBCBytes := []byte{0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x2a}
+	// aes192-CBC = 2.16.840.1.101.3.4.1.22
+	aes192CBCBytes := []byte{0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x16}
+	// aes128-CBC = 2.16.840.1.101.3.4.1.2
+	aes128CBCBytes := []byte{0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x02}
+
+	if findOIDBytes(data, aes256CBCBytes) {
+		return "AES-256-CBC"
+	}
+	if findOIDBytes(data, aes192CBCBytes) {
+		return "AES-192-CBC"
+	}
+	if findOIDBytes(data, aes128CBCBytes) {
+		return "AES-128-CBC"
+	}
+
+	// Check for raw 3DES OID
+	// des-EDE3-CBC = 1.2.840.113549.3.7
+	des3Bytes := []byte{0x06, 0x08, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x03, 0x07}
+	if findOIDBytes(data, des3Bytes) {
+		return "3-Key TripleDES"
+	}
+
+	return ""
+}
+
+func getCertEncryptionAlgorithm(data []byte) string {
+	// Check for legacy PBE with RC2 first (most common in legacy P12)
+	// pbeWithSHA1And40BitRC2-CBC = 1.2.840.113549.1.12.1.6
+	pbeRC2Bytes := []byte{0x06, 0x0a, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x0c, 0x01, 0x06}
+	if findOIDBytes(data, pbeRC2Bytes) {
+		return "RC2-40-CBC (PBE)"
+	}
+
+	// Check for modern AES encryption via PBES2
+	// aes256-CBC = 2.16.840.1.101.3.4.1.42
+	aes256CBCBytes := []byte{0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x2a}
+	// aes192-CBC = 2.16.840.1.101.3.4.1.22
+	aes192CBCBytes := []byte{0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x16}
+	// aes128-CBC = 2.16.840.1.101.3.4.1.2
+	aes128CBCBytes := []byte{0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x02}
+
+	if findOIDBytes(data, aes256CBCBytes) {
+		return "AES-256-CBC"
+	}
+	if findOIDBytes(data, aes192CBCBytes) {
+		return "AES-192-CBC"
+	}
+	if findOIDBytes(data, aes128CBCBytes) {
+		return "AES-128-CBC"
+	}
+
+	// Check for raw RC2 OID
+	// rc2CBC = 1.2.840.113549.3.2
+	rc2Bytes := []byte{0x06, 0x08, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x03, 0x02}
+	if findOIDBytes(data, rc2Bytes) {
+		return "RC2-40-CBC"
+	}
+
+	return ""
 }
 
 func getKdfAlgorithm(data []byte) string {
@@ -128,15 +243,18 @@ func oidToName(oid string) string {
 }
 
 type P12Info struct {
-	Filename            string
-	Encoding            string
-	EncryptionAlgorithm string
-	MacAlgorithm        string
-	KdfAlgorithm        string
-	CertificateCount    int
-	PrivateKeyCount     int
-	Certificates        []P12Certificate
-	PrivateKeys         []P12Key
+	Filename                string
+	Encoding                string
+	EncryptionAlgorithm     string
+	MacAlgorithm            string
+	MacIterations           int
+	KdfAlgorithm            string
+	KeyEncryptionAlgorithm  string
+	CertEncryptionAlgorithm string
+	CertificateCount        int
+	PrivateKeyCount         int
+	Certificates            []P12Certificate
+	PrivateKeys             []P12Key
 }
 
 type P12Certificate struct {
@@ -209,8 +327,6 @@ func convertBERToDERWithOpenSSL(data []byte, password string) ([]byte, error) {
 
 func parseP12Data(data []byte, filename string, password string) (*P12Info, error) {
 	encoding := "PKCS#12"
-	macAlgorithm := getMacAlgorithm(data)
-	kdfAlgorithm := getKdfAlgorithm(data)
 	isBER := false
 
 	privateKey, leafCert, caCerts, err := pkcs12.DecodeChain(data, password)
@@ -249,15 +365,24 @@ func parseP12Data(data []byte, filename string, password string) (*P12Info, erro
 		return nil, fmt.Errorf("invalid PKCS#12 file: %w", err)
 	}
 
+	// Get MAC, KDF and encryption algorithms from the (possibly converted) data
+	macAlgorithm, macIterations := getMacAlgorithmAndIterations(data)
+	kdfAlgorithm := getKdfAlgorithm(data)
+	keyEncryptionAlgo := getKeyEncryptionAlgorithm(data)
+	certEncryptionAlgo := getCertEncryptionAlgorithm(data)
+
 	p12Info := &P12Info{
-		Filename:         filename,
-		Encoding:         encoding,
-		MacAlgorithm:     macAlgorithm,
-		KdfAlgorithm:     kdfAlgorithm,
-		CertificateCount: 0,
-		PrivateKeyCount:  0,
-		Certificates:     []P12Certificate{},
-		PrivateKeys:      []P12Key{},
+		Filename:                filename,
+		Encoding:                encoding,
+		MacAlgorithm:            macAlgorithm,
+		MacIterations:           macIterations,
+		KdfAlgorithm:            kdfAlgorithm,
+		KeyEncryptionAlgorithm:  keyEncryptionAlgo,
+		CertEncryptionAlgorithm: certEncryptionAlgo,
+		CertificateCount:        0,
+		PrivateKeyCount:         0,
+		Certificates:            []P12Certificate{},
+		PrivateKeys:             []P12Key{},
 	}
 
 	if leafCert != nil {
