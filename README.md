@@ -65,12 +65,13 @@ Note: Ed25519 and Ed448 certificates are supported for parsing. Key type is dete
 - RSA certificates with private keys
 - ECDSA (P-256, P-384, P-521) certificates with private keys
 - Hybrid certificates (RSA/ECDSA + PQC) in PKCS#12
+- Both legacy (SHA-1/MD5) and modern (SHA-256) PKCS#12 files
 
 **Not supported:**
 - Pure PQC keys/certs in PKCS#12
 - Ed25519/Ed448 private keys in PKCS#12
 
-**Note:** PKCS#12 files created with OpenSSL may require the `-legacy` flag for compatibility:
+**Note:** PKCS#12 files created with OpenSSL 3.x (modern) work out of the box. For compatibility with older software, use the `-legacy` flag:
 ```bash
 openssl pkcs12 -export -legacy -out bundle.pfx -inkey key.pem -in cert.pem
 ```
@@ -287,9 +288,12 @@ Bits:          2048
 Quantum Safe:  false
 ```
 
-**Note:** PKCS#12 files created with OpenSSL may require the `-legacy` flag:
+**Note:** PKCS#12 files created with OpenSSL 3.x work out of the box. For compatibility with older software, use the `-legacy` flag:
 ```bash
 openssl pkcs12 -export -legacy -out bundle.p12 -inkey key.pem -in cert.pem
+
+# Modern SHA-256 (default with OpenSSL 3.x)
+openssl pkcs12 -export -out modern-bundle.p12 -inkey key.pem -in cert.pem
 ```
 
 ### Global Flags
@@ -423,14 +427,15 @@ test_certs/
 │   ├── server-ecdsa-p256.pfx
 │   ├── server-ecdsa-p384.pfx
 │   ├── server-ecdsa-p521.pfx
-│   └── server-ed25519.pfx
+│   ├── server-ed25519.pfx
+│   └── server-sha256.pfx   # Modern SHA-256 PKCS#12
 └── postquantum/       # PQC certificates and keys
     └── p12/           # PKCS#12 with hybrid certificates
         ├── server-hybrid-rsa.pfx
         └── server-hybrid-ecdsa.pfx
 ```
 
-**PKCS#12 test files** are generated with OpenSSL using `-legacy` flag for compatibility.
+**PKCS#12 test files** include both legacy (SHA-1/MD5) and modern (SHA-256) PKCS#12 files.
 
 ### Regenerating Test Certificates
 

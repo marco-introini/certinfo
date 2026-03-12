@@ -304,6 +304,11 @@ openssl pkcs12 -export -legacy -out server-ed25519.pfx \
     -in "${CERT_DIR}/traditional/ecdsa/server-ed25519.crt" \
     -CAfile "${CERT_DIR}/traditional/ecdsa/ca-ed25519.crt" -passout pass:testpass
 
+openssl pkcs12 -export -out server-sha256.pfx \
+    -inkey "${CERT_DIR}/traditional/rsa/server-rsa2048.key" \
+    -in "${CERT_DIR}/traditional/rsa/server-rsa2048.crt" \
+    -CAfile "${CERT_DIR}/traditional/rsa/ca-rsa2048.crt" -passout pass:testpass
+
 echo "[7/7] Generating certificates with text prefix for PEM parsing tests..."
 cd "${CERT_DIR}/with-text"
 

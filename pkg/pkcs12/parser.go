@@ -1,6 +1,8 @@
 package pkcs12
 
 import (
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"os"
@@ -8,7 +10,7 @@ import (
 
 	"github.com/marco-introini/certinfo/pkg/certificate"
 	"github.com/marco-introini/certinfo/pkg/privatekey"
-	"golang.org/x/crypto/pkcs12"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 type P12Info struct {
@@ -36,13 +38,14 @@ var ErrNoEntries = fmt.Errorf("no certificates or private keys found in PKCS#12 
 func parseP12Data(data []byte, filename string, password string) (*P12Info, error) {
 	encoding := "PKCS#12"
 
-	blocks, err := pkcs12.ToPEM(data, password)
+	privateKey, leafCert, caCerts, err := pkcs12.DecodeChain(data, password)
 	if err != nil {
 		if strings.Contains(err.Error(), "incorrect password") ||
 			strings.Contains(err.Error(), "invalid password") ||
 			strings.Contains(err.Error(), "pkcs12: decryption error") ||
 			strings.Contains(err.Error(), "decryption password incorrect") ||
-			strings.Contains(err.Error(), "password incorrect") {
+			strings.Contains(err.Error(), "password incorrect") ||
+			strings.Contains(err.Error(), "pkcs12:") {
 			return nil, ErrEncryptedP12
 		}
 		return nil, fmt.Errorf("invalid PKCS#12 file: %w", err)
@@ -57,48 +60,52 @@ func parseP12Data(data []byte, filename string, password string) (*P12Info, erro
 		PrivateKeys:      []P12Key{},
 	}
 
-	certKeyMap := make(map[string]bool)
-
-	for _, block := range blocks {
-		switch block.Type {
-		case "CERTIFICATE":
-			cert, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				continue
-			}
-			certInfo, err := certificate.ParseCertificateFromBytes(cert.Raw)
-			if err != nil {
-				continue
-			}
+	if leafCert != nil {
+		certInfo, err := certificate.ParseCertificateFromBytes(leafCert.Raw)
+		if err == nil {
 			certInfo.Filename = filename
+			p12Info.Certificates = append(p12Info.Certificates, P12Certificate{
+				Cert:          certInfo,
+				HasPrivateKey: privateKey != nil,
+			})
+			p12Info.CertificateCount++
+		}
+	}
 
-			certKeyMap[cert.Subject.CommonName] = false
-
+	for _, caCert := range caCerts {
+		certInfo, err := certificate.ParseCertificateFromBytes(caCert.Raw)
+		if err == nil {
+			certInfo.Filename = filename
 			p12Info.Certificates = append(p12Info.Certificates, P12Certificate{
 				Cert:          certInfo,
 				HasPrivateKey: false,
 			})
 			p12Info.CertificateCount++
-
-		case "PRIVATE KEY", "RSA PRIVATE KEY", "EC PRIVATE KEY":
-			keyInfo, err := privatekey.ParsePrivateKeyFromBytes(block.Bytes, filename, password)
-			if err != nil {
-				continue
-			}
-			keyInfo.Filename = filename
-			keyInfo.Encoding = encoding
-
-			p12Info.PrivateKeys = append(p12Info.PrivateKeys, P12Key{
-				Key: keyInfo,
-			})
-			p12Info.PrivateKeyCount++
 		}
 	}
 
-	for i := range p12Info.Certificates {
-		cn := p12Info.Certificates[i].Cert.CommonName
-		if _, ok := certKeyMap[cn]; ok {
-			p12Info.Certificates[i].HasPrivateKey = true
+	if privateKey != nil {
+		var keyBytes []byte
+
+		switch key := privateKey.(type) {
+		case *rsa.PrivateKey:
+			keyBytes = x509.MarshalPKCS1PrivateKey(key)
+		case *ecdsa.PrivateKey:
+			var err error
+			keyBytes, err = x509.MarshalECPrivateKey(key)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal ECDSA key: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("unsupported private key type: %T", privateKey)
+		}
+
+		keyInfo, err := privatekey.ParsePrivateKeyFromBytes(keyBytes, filename, password)
+		if err == nil {
+			keyInfo.Filename = filename
+			keyInfo.Encoding = encoding
+			p12Info.PrivateKeys = append(p12Info.PrivateKeys, P12Key{Key: keyInfo})
+			p12Info.PrivateKeyCount++
 		}
 	}
 

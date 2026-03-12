@@ -51,6 +51,12 @@ func TestParseP12RSA(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name:     "SHA-256 (modern)",
+			file:     getTestP12Path("p12-format/server-sha256.pfx"),
+			password: "testpass",
+			wantErr:  false,
+		},
+		{
 			name:     "wrong password",
 			file:     getTestP12Path("p12-format/server-rsa2048.pfx"),
 			password: "wrongpass",
