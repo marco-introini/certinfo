@@ -7,6 +7,7 @@ import (
 	"encoding/asn1"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/marco-introini/certinfo/pkg/certificate"
@@ -150,13 +151,93 @@ type P12Key struct {
 var ErrEncryptedP12 = fmt.Errorf("PKCS#12 file is encrypted, password required")
 var ErrNoEntries = fmt.Errorf("no certificates or private keys found in PKCS#12 file")
 
+func convertBERToDERWithOpenSSL(data []byte, password string) ([]byte, error) {
+	// Create temp files
+	tmpIn, err := os.CreateTemp("", "p12_in_*.p12")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpIn.Name())
+
+	tmpCert, err := os.CreateTemp("", "p12_cert_*.pem")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpCert.Name())
+
+	tmpKey, err := os.CreateTemp("", "p12_key_*.pem")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpKey.Name())
+
+	tmpOut, err := os.CreateTemp("", "p12_out_*.p12")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpOut.Name())
+
+	// Write input data
+	if _, err := tmpIn.Write(data); err != nil {
+		return nil, err
+	}
+	tmpIn.Close()
+
+	// Step 1: Extract certificate using legacy mode
+	cmd := exec.Command("openssl", "pkcs12", "-in", tmpIn.Name(), "-clcerts", "-nokeys",
+		"-out", tmpCert.Name(), "-passin", "pass:"+password, "-legacy")
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("openssl extract cert failed: %w", err)
+	}
+
+	// Step 2: Extract private key using legacy mode
+	cmd = exec.Command("openssl", "pkcs12", "-in", tmpIn.Name(), "-nocerts", "-nodes",
+		"-out", tmpKey.Name(), "-passin", "pass:"+password, "-legacy")
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("openssl extract key failed: %w", err)
+	}
+
+	// Step 3: Create new P12 with both cert and key
+	cmd = exec.Command("openssl", "pkcs12", "-export", "-in", tmpCert.Name(),
+		"-inkey", tmpKey.Name(), "-out", tmpOut.Name(), "-passout", "pass:"+password)
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("openssl create p12 failed: %w", err)
+	}
+
+	return os.ReadFile(tmpOut.Name())
+}
+
 func parseP12Data(data []byte, filename string, password string) (*P12Info, error) {
 	encoding := "PKCS#12"
 	macAlgorithm := getMacAlgorithm(data)
 	kdfAlgorithm := getKdfAlgorithm(data)
+	isBER := false
 
 	privateKey, leafCert, caCerts, err := pkcs12.DecodeChain(data, password)
 	if err != nil {
+		// Check if this is a BER file that needs conversion
+		if strings.Contains(err.Error(), "indefinite length") ||
+			strings.Contains(err.Error(), "not DER") {
+			isBER = true
+
+			// Try OpenSSL first if available
+			if _, sslErr := exec.LookPath("openssl"); sslErr == nil && password != "" {
+				derData, convertErr := convertBERToDERWithOpenSSL(data, password)
+				if convertErr == nil {
+					privateKey, leafCert, caCerts, err = pkcs12.DecodeChain(derData, password)
+					if err == nil {
+						data = derData
+						encoding = "PKCS#12 (converted from BER)"
+					}
+				}
+			}
+		}
+	}
+
+	if err != nil {
+		if isBER {
+			return nil, fmt.Errorf("PKCS#12 file uses BER encoding (indefinite length). Please convert it to DER format using: openssl pkcs12 -in file.p12 -out file_fixed.p12 -export")
+		}
 		if strings.Contains(err.Error(), "incorrect password") ||
 			strings.Contains(err.Error(), "invalid password") ||
 			strings.Contains(err.Error(), "pkcs12: decryption error") ||

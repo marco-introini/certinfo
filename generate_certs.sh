@@ -309,6 +309,100 @@ openssl pkcs12 -export -out server-sha256.pfx \
     -in "${CERT_DIR}/traditional/rsa/server-rsa2048.crt" \
     -CAfile "${CERT_DIR}/traditional/rsa/ca-rsa2048.crt" -passout pass:testpass
 
+echo "[6b/7] Generating BER-encoded PKCS#12 file (indefinite length)..."
+# First create a standard P12
+openssl pkcs12 -export -legacy -out server-ber-indefinite.pfx \
+    -inkey "${CERT_DIR}/traditional/rsa/server-rsa2048.key" \
+    -in "${CERT_DIR}/traditional/rsa/server-rsa2048.crt" \
+    -CAfile "${CERT_DIR}/traditional/rsa/ca-rsa2048.crt" -passout pass:testpass
+# Then convert to BER using Python with proper indefinite length encoding
+if command -v python3 &> /dev/null; then
+    python3 << 'PYEOF'
+def der_to_ber(data):
+    """Convert DER encoding to BER with indefinite lengths."""
+    result = bytearray()
+    i = 0
+    
+    while i < len(data):
+        tag = data[i]
+        result.append(tag)
+        i += 1
+        
+        if i >= len(data):
+            break
+            
+        length_byte = data[i]
+        
+        # Check if this is a constructed type (SEQUENCE, SET, etc.)
+        is_constructed = (tag & 0x20) != 0
+        
+        if length_byte & 0x80:
+            # Long form length
+            num_len_bytes = length_byte & 0x7f
+            # Read the actual length
+            length = 0
+            for j in range(num_len_bytes):
+                length = (length << 8) | data[i + 1 + j]
+            
+            if is_constructed:
+                # Replace with indefinite length for constructed types
+                result.append(0x80)  # Indefinite length marker
+                i += 1 + num_len_bytes
+                # Process content recursively
+                content_end = i + length
+                result.extend(der_to_ber(data[i:content_end]))
+                result.extend(b'\x00\x00')  # End-of-contents octets
+                i = content_end
+            else:
+                # Keep definite length for primitive types
+                result.append(length_byte)
+                i += 1
+                for j in range(num_len_bytes):
+                    result.append(data[i])
+                    i += 1
+                # Copy the primitive content
+                result.extend(data[i:i+length])
+                i += length
+        else:
+            # Short form length
+            length = length_byte
+            
+            if is_constructed and length > 0:
+                # Replace with indefinite length for constructed types
+                result.append(0x80)  # Indefinite length marker
+                i += 1
+                # Process content recursively
+                content_end = i + length
+                result.extend(der_to_ber(data[i:content_end]))
+                result.extend(b'\x00\x00')  # End-of-contents octets
+                i = content_end
+            else:
+                # Keep definite length for primitive types or empty sequences
+                result.append(length_byte)
+                i += 1
+                result.extend(data[i:i+length])
+                i += length
+    
+    return bytes(result)
+
+# Read DER file
+with open('server-ber-indefinite.pfx', 'rb') as f:
+    data = f.read()
+
+# Convert to BER
+ber_data = der_to_ber(data)
+
+# Write BER file
+with open('server-ber-indefinite.pfx', 'wb') as f:
+    f.write(ber_data)
+
+print("Converted to BER encoding with indefinite length")
+PYEOF
+    echo "  - Created BER-encoded P12 file with indefinite length"
+else
+    echo "  - Python3 not available, keeping DER encoding"
+fi
+
 echo "[7/7] Generating certificates with text prefix for PEM parsing tests..."
 cd "${CERT_DIR}/with-text"
 
