@@ -76,6 +76,8 @@ Note: Ed25519 and Ed448 certificates are supported for parsing. Key type is dete
 openssl pkcs12 -export -legacy -out bundle.pfx -inkey key.pem -in cert.pem
 ```
 
+**Note:** certinfo automatically uses OpenSSL (if available) to convert BER-encoded PKCS#12 files to DER format when parsing fails due to "indefinite length" errors.
+
 ### Post-Quantum Cryptography (PQC)
 
 | Algorithm | Type              | Description                                   |
@@ -162,7 +164,6 @@ certinfo cert <certificate.der>
 **Flags:**
 
 - `-f, --format string` - Output format (table, json) (default: table)
-- `-r, --recursive` - Search recursively through subdirectories
 
 **Example Output:**
 
@@ -214,6 +215,27 @@ certinfo key encrypted-key.pem -p mypassword
 certinfo key encrypted-key.pem  # Will prompt for password
 ```
 
+#### `dir` - Summarize Certificates in a Directory
+
+List all certificates in a directory with summary information.
+
+```bash
+certinfo dir <directory/>
+```
+
+**Flags:**
+
+- `-f, --format string` - Output format (table, json) (default: table)
+- `-r, --recursive` - Search recursively through subdirectories
+
+**Example Output:**
+
+```
+FILENAME              ENCODING  CN          ISSUER        STATUS    QUANTUM SAFE  PQC TYPES
+server.pem            PEM       example.com  My CA         valid     No            -
+rsa2048.pem           PEM       rsa.test    Root CA       valid     No            -
+```
+
 #### `keydir` - Summarize Private Keys in a Directory
 
 List all private keys in a directory with summary information.
@@ -226,6 +248,7 @@ certinfo keydir <directory/>
 
 - `-f, --format string` - Output format (table, json) (default: table)
 - `-r, --recursive` - Search recursively through subdirectories
+- `-p, --password string` - Password for encrypted private keys
 
 **Example Output:**
 
@@ -295,6 +318,8 @@ openssl pkcs12 -export -legacy -out bundle.p12 -inkey key.pem -in cert.pem
 # Modern SHA-256 (default with OpenSSL 3.x)
 openssl pkcs12 -export -out modern-bundle.p12 -inkey key.pem -in cert.pem
 ```
+
+**Note:** certinfo automatically uses OpenSSL (if available) to convert BER-encoded PKCS#12 files to DER format when parsing fails.
 
 ### Global Flags
 
