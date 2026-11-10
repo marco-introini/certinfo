@@ -416,7 +416,7 @@ func TestGetPQCTypesFromAlgorithmName(t *testing.T) {
 		expected []string
 	}{
 		{"ML-DSA-44", "ml-dsa-44", []string{"ML-DSA-44"}},
-		{"ML-DSA-65", "ml-dsa-45", []string{"ML-DSA-65"}},
+		{"ML-DSA-65", "ml-dsa-65", []string{"ML-DSA-65"}},
 		{"ML-DSA-87", "ml-dsa-87", []string{"ML-DSA-87"}},
 		{"ML-DSA-44 dilithium", "dilithium2", []string{"ML-DSA-44"}},
 		{"ML-DSA-65 dilithium", "dilithium3", []string{"ML-DSA-65"}},

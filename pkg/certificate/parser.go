@@ -72,7 +72,7 @@ func getPQCTypesFromAlgorithmName(algoName string) []string {
 	if strings.Contains(lowerAlgo, "ml-dsa-44") || strings.Contains(lowerAlgo, "dilithium2") {
 		pqcTypes = append(pqcTypes, "ML-DSA-44")
 	}
-	if strings.Contains(lowerAlgo, "ml-dsa-45") || strings.Contains(lowerAlgo, "dilithium3") {
+	if strings.Contains(lowerAlgo, "ml-dsa-65") || strings.Contains(lowerAlgo, "dilithium3") {
 		pqcTypes = append(pqcTypes, "ML-DSA-65")
 	}
 	if strings.Contains(lowerAlgo, "ml-dsa-87") || strings.Contains(lowerAlgo, "dilithium5") {

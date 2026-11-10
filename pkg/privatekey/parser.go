@@ -6,6 +6,8 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -138,6 +140,18 @@ func detectPQCOIDFromError(errMsg string) string {
 		}
 	}
 	return ""
+}
+
+func extractPKCS8AlgorithmOID(der []byte) string {
+	var pki struct {
+		Version    int
+		Algo       pkix.AlgorithmIdentifier
+		PrivateKey asn1.RawValue
+	}
+	if _, err := asn1.Unmarshal(der, &pki); err != nil {
+		return ""
+	}
+	return pki.Algo.Algorithm.String()
 }
 
 func getPQCBits(pqcType string) int {
@@ -344,18 +358,25 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 		}
 	}
 
-	pqcOID := detectPQCOIDFromError(err.Error())
+	pqcOID := extractPKCS8AlgorithmOID(der)
+	if pqcOID == "" {
+		pqcOID = detectPQCOIDFromError(err.Error())
+	}
 	if pqcOID != "" {
+		pqcType := detectPQCFromOID(pqcOID)
+		if pqcType == "" {
+			pqcType = pqcOID
+		}
 		info.IsQuantumSafe = true
 		info.Algorithm = "PKCS#8"
-		info.Bits = getPQCBits(pqcOID)
-		if strings.HasPrefix(pqcOID, "ML-DSA") {
+		info.Bits = getPQCBits(pqcType)
+		if strings.HasPrefix(pqcType, "ML-DSA") {
 			info.KeyType = "ML-DSA"
-		} else if strings.HasPrefix(pqcOID, "ML-KEM") {
+		} else if strings.HasPrefix(pqcType, "ML-KEM") {
 			info.KeyType = "ML-KEM"
-		} else if strings.HasPrefix(pqcOID, "SLH-DSA") {
+		} else if strings.HasPrefix(pqcType, "SLH-DSA") {
 			info.KeyType = "SLH-DSA"
-		} else if strings.HasPrefix(pqcOID, "FALCON") {
+		} else if strings.HasPrefix(pqcType, "FALCON") {
 			info.KeyType = "FALCON"
 		}
 		return info, nil
