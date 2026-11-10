@@ -7,14 +7,21 @@ A CLI tool to analyze X.509 certificates and private keys (RSA, ECDSA, Ed25519, 
 - Analyze single X.509 certificate files with detailed information
 - Scan directories for certificates with summary output
 - Parse private keys (RSA, ECDSA, Ed25519, ML-KEM, ML-DSA, SLH-DSA, FN-DSA) with key characteristics
+- Parse public keys standalone (RSA, ECDSA, Ed25519, PQC)
 - Parse PKCS#12 (.p12/.pfx) files containing certificates and private keys
-- Support for password-protected/encrypted private keys (interactive or via flag)
-- Support for password-protected PKCS#12 files (via `-p` flag)
-- Output in table or JSON format
+- Parse Java KeyStore (.jks) files
+- Support for password-protected/encrypted private keys (interactive, via flag, file or environment)
+- Support for password-protected PKCS#12 and JKS files
+- Verify certificate chains with custom CA bundles
+- Optional CRL and OCSP revocation checking
+- Check if a certificate and private key match
+- Check if a certificate is valid for a given hostname
+- Detect weak algorithms and key sizes (SHA-1, MD5, RSA < 2048, etc.)
+- Output in table, JSON or CSV format
 - Recursive directory scanning support
 - Supports both PEM and DER encoding formats
 - Post-Quantum Cryptography (PQC) support
-- Extended Key Usage (EKU) display for detailed certificate analysis
+- Extended Key Usage (EKU), Key Usage, SKI, AKI and certificate policies display
 - Test suite with 100+ tests covering all functionality
 
 ## Supported Formats
@@ -64,12 +71,13 @@ Note: Ed25519 and Ed448 certificates are supported for parsing. Key type is dete
 **Supported:**
 - RSA certificates with private keys
 - ECDSA (P-256, P-384, P-521) certificates with private keys
+- Ed25519 certificates with private keys
 - Hybrid certificates (RSA/ECDSA + PQC) in PKCS#12
 - Both legacy (SHA-1/MD5) and modern (SHA-256) PKCS#12 files
 
 **Not supported:**
 - Pure PQC keys/certs in PKCS#12
-- Ed25519/Ed448 private keys in PKCS#12
+- Ed448 private keys in PKCS#12
 
 **Note:** PKCS#12 files created with OpenSSL 3.x (modern) work out of the box. For compatibility with older software, use the `-legacy` flag:
 ```bash
@@ -163,7 +171,8 @@ certinfo cert <certificate.der>
 
 **Flags:**
 
-- `-f, --format string` - Output format (table, json) (default: table)
+- `-f, --format string` - Output format (table, json, csv) (default: table)
+- `--hostname string` - Verify the certificate is valid for the given hostname
 
 **Example Output:**
 
@@ -194,6 +203,7 @@ certinfo key <key.der>
 
 - `-f, --format string` - Output format (table, json) (default: table)
 - `-p, --password string` - Password for encrypted private keys
+- `--password-file string` - File containing the password for the encrypted private key
 
 **Example Output:**
 
@@ -225,8 +235,10 @@ certinfo dir <directory/>
 
 **Flags:**
 
-- `-f, --format string` - Output format (table, json) (default: table)
+- `-f, --format string` - Output format (table, json, csv) (default: table)
 - `-r, --recursive` - Search recursively through subdirectories
+- `--fail-on-expired` - Exit with code 2 if any certificate is expired
+- `--fail-on-expiring-soon` - Exit with code 2 if any certificate is expiring soon
 
 **Example Output:**
 
@@ -246,9 +258,10 @@ certinfo keydir <directory/>
 
 **Flags:**
 
-- `-f, --format string` - Output format (table, json) (default: table)
+- `-f, --format string` - Output format (table, json, csv) (default: table)
 - `-r, --recursive` - Search recursively through subdirectories
 - `-p, --password string` - Password for encrypted private keys
+- `--password-file string` - File containing the password for encrypted private keys
 
 **Example Output:**
 
@@ -273,6 +286,7 @@ certinfo p12 <file.p12>
 
 - `-f, --format string` - Output format (table, json) (default: table)
 - `-p, --password string` - Password for PKCS#12 file (required)
+- `--password-file string` - File containing the password for the PKCS#12 file
 
 **Example:**
 
@@ -321,6 +335,47 @@ openssl pkcs12 -export -out modern-bundle.p12 -inkey key.pem -in cert.pem
 
 **Note:** certinfo automatically uses OpenSSL (if available) to convert BER-encoded PKCS#12 files to DER format when parsing fails.
 
+#### `match` - Check Certificate and Key Match
+
+Verify that a private key corresponds to a certificate.
+
+```bash
+certinfo match <cert.pem> <key.pem>
+certinfo match <cert.pem> <encrypted-key.pem> -p mypassword
+```
+
+#### `pubkey` - Analyze a Public Key
+
+Show information about a standalone public key file.
+
+```bash
+certinfo pubkey <key.pub>
+```
+
+#### `verify` - Verify Certificate Chain
+
+Validate a certificate chain against the system trust store or a custom CA bundle.
+
+```bash
+certinfo verify <cert.pem>
+certinfo verify <cert.pem> --ca root-ca.crt --ca intermediate-ca.crt
+certinfo verify <cert.pem> --ca root-ca.crt --crl --ocsp
+```
+
+#### `jks` - Analyze a Java KeyStore
+
+Show information about a Java KeyStore (`.jks`) file.
+
+```bash
+certinfo jks <keystore.jks> -p storepass
+```
+
+#### `version` - Show Version
+
+```bash
+certinfo version
+```
+
 ### Global Flags
 
 - `-h, --help` - Help for any command
@@ -338,6 +393,14 @@ Machine-readable JSON output suitable for scripting.
 
 ```bash
 certinfo cert certificate.pem --format json
+```
+
+### CSV Format
+
+CSV output is available for summary commands (`dir` and `keydir`).
+
+```bash
+certinfo dir ./certs/ --format csv
 ```
 
 ### Color Output
@@ -410,6 +473,38 @@ certinfo p12 /path/to/bundle.p12 -p mypassword
 certinfo p12 /path/to/bundle.pfx -p mypassword --format json
 ```
 
+### Check a Java KeyStore
+
+```bash
+certinfo jks /path/to/keystore.jks -p storepass
+```
+
+### Verify a Certificate Chain
+
+```bash
+certinfo verify /path/to/server.crt
+certinfo verify /path/to/server.crt --ca /path/to/ca.crt
+certinfo verify /path/to/server.crt --ca /path/to/ca.crt --crl --ocsp
+```
+
+### Check Certificate and Key Match
+
+```bash
+certinfo match /path/to/cert.pem /path/to/key.pem
+```
+
+### Check Hostname Validity
+
+```bash
+certinfo cert /path/to/cert.pem --hostname example.com
+```
+
+### Export Summary as CSV
+
+```bash
+certinfo dir ./certs/ --format csv > summary.csv
+```
+
 ### Generate Compatible PKCS#12 with OpenSSL
 
 ```bash
@@ -476,13 +571,20 @@ test_certs/
 
 - Certificate parsing (RSA, ECDSA, Ed25519, Ed448, PQC)
 - Key parsing (RSA, ECDSA, Ed25519, ML-KEM, ML-DSA, SLH-DSA, FN-DSA)
-- PKCS#12 parsing (RSA, ECDSA certificates with private keys)
+- Public key parsing (RSA, ECDSA, Ed25519, PQC)
+- PKCS#12 parsing (RSA, ECDSA, Ed25519 certificates with private keys)
+- JKS parsing (certificates and private keys)
 - Encrypted key parsing (password-protected keys)
-- PKCS#12 password handling (correct, wrong, missing)
+- PKCS#12 and JKS password handling (correct, wrong, missing)
 - Directory scanning (recursive and non-recursive)
 - SAN and wildcard handling
-- Extended Key Usage (EKU) parsing and display
+- Extended Key Usage (EKU), Key Usage and certificate policy parsing and display
 - Status detection (valid, expired, expiring soon)
+- Weak algorithm and key size detection
+- Certificate chain verification with CA bundles
+- CRL and OCSP revocation checking
+- Certificate/key matching
+- Hostname validation
 - PQC algorithm detection
 
 ## License
