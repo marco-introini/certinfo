@@ -6,17 +6,17 @@ This document provides guidelines for AI agents working on the certinfo-go codeb
 
 ### Build Binary
 ```bash
-go build -o certinfo ./main.go
+go build -o certinfo .
 ```
 
 ### Install Globally
 ```bash
-go install ./main.go
+go install .
 ```
 
 ### Run Locally
 ```bash
-go run ./main.go <command> <args>
+go run . <command> <args>
 ```
 
 ## Test Commands

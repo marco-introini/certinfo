@@ -27,7 +27,7 @@ func getTestKeyPath(relPath string) string {
 
 func runCertinfo(args ...string) (stdout, stderr string, exitCode int) {
 	wd, _ := os.Getwd()
-	cmd := exec.Command("go", append([]string{"run", "./main.go"}, args...)...)
+	cmd := exec.Command("go", append([]string{"run", "."}, args...)...)
 	cmd.Dir = filepath.Join(wd, "..")
 
 	var stdoutBuf, stderrBuf bytes.Buffer
