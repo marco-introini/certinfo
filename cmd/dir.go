@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/marco-introini/certinfo/pkg/certificate"
 	"github.com/marco-introini/certinfo/pkg/utils"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -24,7 +26,7 @@ var dirCmd = &cobra.Command{
 		}
 
 		if err != nil {
-			os.Stderr.WriteString("Error: " + err.Error() + "\n")
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -33,6 +35,5 @@ var dirCmd = &cobra.Command{
 }
 
 func init() {
-	dirCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "Search recursively")
 	rootCmd.AddCommand(dirCmd)
 }

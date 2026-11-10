@@ -15,8 +15,6 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
-var pkcs12OID = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 12}
-
 type pfxPdu struct {
 	Version  int
 	AuthSafe asn1.RawValue
@@ -103,16 +101,6 @@ func extractOIDFromBytes(data []byte) string {
 		}
 	}
 	return ""
-}
-
-func getMacAlgorithm(data []byte) string {
-	algo, _ := getMacAlgorithmAndIterations(data)
-	return algo
-}
-
-func getMacIterations(data []byte) int {
-	_, iterations := getMacAlgorithmAndIterations(data)
-	return iterations
 }
 
 func getKeyEncryptionAlgorithm(data []byte) string {
@@ -275,31 +263,33 @@ func convertBERToDERWithOpenSSL(data []byte, password string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(tmpIn.Name())
+	defer func() { _ = os.Remove(tmpIn.Name()) }()
 
 	tmpCert, err := os.CreateTemp("", "p12_cert_*.pem")
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(tmpCert.Name())
+	defer func() { _ = os.Remove(tmpCert.Name()) }()
 
 	tmpKey, err := os.CreateTemp("", "p12_key_*.pem")
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(tmpKey.Name())
+	defer func() { _ = os.Remove(tmpKey.Name()) }()
 
 	tmpOut, err := os.CreateTemp("", "p12_out_*.p12")
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(tmpOut.Name())
+	defer func() { _ = os.Remove(tmpOut.Name()) }()
 
 	// Write input data
 	if _, err := tmpIn.Write(data); err != nil {
 		return nil, err
 	}
-	tmpIn.Close()
+	if err := tmpIn.Close(); err != nil {
+		return nil, err
+	}
 
 	// Step 1: Extract certificate using legacy mode
 	cmd := exec.Command("openssl", "pkcs12", "-in", tmpIn.Name(), "-clcerts", "-nokeys",

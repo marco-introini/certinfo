@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/marco-introini/certinfo/pkg/pkcs12"
@@ -18,7 +19,7 @@ var p12Cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		p12, err := pkcs12.ParseP12(args[0], password)
 		if err != nil {
-			os.Stderr.WriteString("Error: " + err.Error() + "\n")
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 		utils.PrintP12Info(p12, utils.OutputFormat(format))

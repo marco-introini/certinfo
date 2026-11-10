@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -12,6 +13,10 @@ import (
 	"github.com/marco-introini/certinfo/pkg/pkcs12"
 	"github.com/marco-introini/certinfo/pkg/privatekey"
 )
+
+func writef(w io.Writer, format string, a ...any) {
+	_, _ = fmt.Fprintf(w, format, a...)
+}
 
 type OutputFormat string
 
@@ -44,29 +49,29 @@ func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
-	fmt.Fprintf(w, "Filename:\t%s\n", cert.Filename)
-	fmt.Fprintf(w, "Encoding:\t%s\n", cert.Encoding)
-	fmt.Fprintf(w, "Common Name:\t%s\n", cert.CommonName)
-	fmt.Fprintf(w, "Issuer:\t%s\n", cert.Issuer)
-	fmt.Fprintf(w, "Subject:\t%s\n", cert.Subject)
-	fmt.Fprintf(w, "Not Before:\t%s\n", formatDate(cert.NotBefore))
-	fmt.Fprintf(w, "Not After:\t%s\n", formatDate(cert.NotAfter))
-	fmt.Fprintf(w, "Algorithm:\t%s\n", cert.Algorithm)
-	fmt.Fprintf(w, "Bits:\t%d\n", cert.Bits)
-	fmt.Fprintf(w, "Serial Number:\t%s\n", cert.SerialNumber)
-	fmt.Fprintf(w, "Is CA:\t%v\n", cert.IsCA)
-	fmt.Fprintf(w, "Quantum Safe:\t%v\n", cert.IsQuantumSafe)
+	writef(w, "Filename:\t%s\n", cert.Filename)
+	writef(w, "Encoding:\t%s\n", cert.Encoding)
+	writef(w, "Common Name:\t%s\n", cert.CommonName)
+	writef(w, "Issuer:\t%s\n", cert.Issuer)
+	writef(w, "Subject:\t%s\n", cert.Subject)
+	writef(w, "Not Before:\t%s\n", formatDate(cert.NotBefore))
+	writef(w, "Not After:\t%s\n", formatDate(cert.NotAfter))
+	writef(w, "Algorithm:\t%s\n", cert.Algorithm)
+	writef(w, "Bits:\t%d\n", cert.Bits)
+	writef(w, "Serial Number:\t%s\n", cert.SerialNumber)
+	writef(w, "Is CA:\t%v\n", cert.IsCA)
+	writef(w, "Quantum Safe:\t%v\n", cert.IsQuantumSafe)
 	if len(cert.PQCTypes) > 0 {
-		fmt.Fprintf(w, "PQC Types:\t%v\n", cert.PQCTypes)
+		writef(w, "PQC Types:\t%v\n", cert.PQCTypes)
 	}
 
 	if len(cert.SANs) > 0 {
-		fmt.Fprintf(w, "SANs:\t%v\n", cert.SANs)
+		writef(w, "SANs:\t%v\n", cert.SANs)
 	}
 	if len(cert.ExtKeyUsageStrings) > 0 {
-		fmt.Fprintf(w, "Ext Key Usage:\t%v\n", cert.ExtKeyUsageStrings)
+		writef(w, "Ext Key Usage:\t%v\n", cert.ExtKeyUsageStrings)
 	}
 }
 
@@ -143,7 +148,7 @@ func PrintCertificateSummaries(summaries []certificate.CertificateSummary, forma
 				status = Color(s.Status, ColorGreen)
 			case "expired":
 				status = Color(s.Status, ColorRed)
-			case "expiring":
+			case "expiring soon":
 				status = Color(s.Status, ColorYellow)
 			}
 			if s.IsQuantumSafe {
@@ -184,16 +189,16 @@ func PrintKeyInfo(key *privatekey.KeyInfo, format OutputFormat) {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
-	fmt.Fprintf(w, "Filename:\t%s\n", key.Filename)
-	fmt.Fprintf(w, "Encoding:\t%s\n", key.Encoding)
-	fmt.Fprintf(w, "Key Type:\t%s\n", key.KeyType)
-	fmt.Fprintf(w, "Algorithm:\t%s\n", key.Algorithm)
-	fmt.Fprintf(w, "Bits:\t%d\n", key.Bits)
-	fmt.Fprintf(w, "Quantum Safe:\t%v\n", key.IsQuantumSafe)
+	writef(w, "Filename:\t%s\n", key.Filename)
+	writef(w, "Encoding:\t%s\n", key.Encoding)
+	writef(w, "Key Type:\t%s\n", key.KeyType)
+	writef(w, "Algorithm:\t%s\n", key.Algorithm)
+	writef(w, "Bits:\t%d\n", key.Bits)
+	writef(w, "Quantum Safe:\t%v\n", key.IsQuantumSafe)
 	if key.Curve != "" {
-		fmt.Fprintf(w, "Curve:\t%s\n", key.Curve)
+		writef(w, "Curve:\t%s\n", key.Curve)
 	}
 }
 
@@ -273,18 +278,6 @@ func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 	}
 }
 
-type p12Summary struct {
-	Filename    string
-	Encoding    string
-	CertCount   int
-	KeyCount    int
-	CommonName  string
-	Issuer      string
-	Status      string
-	QuantumSafe string
-	PQCTypes    []string
-}
-
 func PrintP12Info(p12 *pkcs12.P12Info, format OutputFormat) {
 	if format == FormatJSON {
 		type jsonOutput struct {
@@ -329,42 +322,42 @@ func PrintP12Info(p12 *pkcs12.P12Info, format OutputFormat) {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
-	fmt.Fprintf(w, "Filename:\t%s\n", p12.Filename)
-	fmt.Fprintf(w, "Encoding:\t%s\n", p12.Encoding)
+	writef(w, "Filename:\t%s\n", p12.Filename)
+	writef(w, "Encoding:\t%s\n", p12.Encoding)
 	if p12.MacAlgorithm != "" {
 		if p12.MacIterations > 1 {
-			fmt.Fprintf(w, "MAC Algorithm:\t%s (%d iter)\n", p12.MacAlgorithm, p12.MacIterations)
+			writef(w, "MAC Algorithm:\t%s (%d iter)\n", p12.MacAlgorithm, p12.MacIterations)
 		} else {
-			fmt.Fprintf(w, "MAC Algorithm:\t%s\n", p12.MacAlgorithm)
+			writef(w, "MAC Algorithm:\t%s\n", p12.MacAlgorithm)
 		}
 	}
 	if p12.KdfAlgorithm != "" {
-		fmt.Fprintf(w, "KDF Algorithm:\t%s\n", p12.KdfAlgorithm)
+		writef(w, "KDF Algorithm:\t%s\n", p12.KdfAlgorithm)
 	}
 	if p12.KeyEncryptionAlgorithm != "" {
-		fmt.Fprintf(w, "Key Encryption:\t%s\n", p12.KeyEncryptionAlgorithm)
+		writef(w, "Key Encryption:\t%s\n", p12.KeyEncryptionAlgorithm)
 	}
 	if p12.CertEncryptionAlgorithm != "" {
-		fmt.Fprintf(w, "Cert Encryption:\t%s\n", p12.CertEncryptionAlgorithm)
+		writef(w, "Cert Encryption:\t%s\n", p12.CertEncryptionAlgorithm)
 	}
-	fmt.Fprintf(w, "Certificate Count:\t%d\n", p12.CertificateCount)
-	fmt.Fprintf(w, "Private Key Count:\t%d\n", p12.PrivateKeyCount)
-	fmt.Fprintf(w, "\n")
+	writef(w, "Certificate Count:\t%d\n", p12.CertificateCount)
+	writef(w, "Private Key Count:\t%d\n", p12.PrivateKeyCount)
+	writef(w, "\n")
 
 	for i, c := range p12.Certificates {
-		fmt.Fprintf(w, "--- Certificate %d ---\n", i+1)
+		writef(w, "--- Certificate %d ---\n", i+1)
 		PrintCertificateInfo(c.Cert, format)
 		if c.HasPrivateKey {
-			fmt.Fprintf(w, "Has Private Key:\tYes\n")
+			writef(w, "Has Private Key:\tYes\n")
 		}
-		fmt.Fprintf(w, "\n")
+		writef(w, "\n")
 	}
 
 	for i, k := range p12.PrivateKeys {
-		fmt.Fprintf(w, "--- Private Key %d ---\n", i+1)
+		writef(w, "--- Private Key %d ---\n", i+1)
 		PrintKeyInfo(k.Key, format)
-		fmt.Fprintf(w, "\n")
+		writef(w, "\n")
 	}
 }

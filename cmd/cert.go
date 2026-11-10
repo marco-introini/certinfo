@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/marco-introini/certinfo/pkg/certificate"
 	"github.com/marco-introini/certinfo/pkg/utils"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -16,7 +18,7 @@ var certCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cert, err := certificate.ParseCertificate(args[0])
 		if err != nil {
-			os.Stderr.WriteString("Error: " + err.Error() + "\n")
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 		utils.PrintCertificateInfo(cert, utils.OutputFormat(format))

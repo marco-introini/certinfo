@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,38 +13,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getTestCertPath(relPath string) string {
-	return filepath.Join("..", "..", "test_certs", relPath)
-}
-
-func getTestKeyPath(relPath string) string {
-	return filepath.Join("..", "..", "test_certs", relPath)
-}
-
-func captureOutput(f func()) (string, string) {
+func captureOutput(t *testing.T, f func()) string {
+	t.Helper()
 	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
 	os.Stdout = w
 	f()
-	w.Close()
+	require.NoError(t, w.Close())
 	os.Stdout = oldStdout
 
 	var stdoutBuf bytes.Buffer
-	stdoutBuf.ReadFrom(r)
-	return stdoutBuf.String(), ""
-}
-
-func captureStderr(f func()) string {
-	oldStderr := os.Stderr
-	r, w, _ := os.Pipe()
-	os.Stderr = w
-	f()
-	w.Close()
-	os.Stderr = oldStderr
-
-	var stderrBuf bytes.Buffer
-	stderrBuf.ReadFrom(r)
-	return stderrBuf.String()
+	_, err = stdoutBuf.ReadFrom(r)
+	require.NoError(t, err)
+	return stdoutBuf.String()
 }
 
 func TestPrintCertificateInfo(t *testing.T) {
@@ -95,7 +76,7 @@ func TestPrintCertificateInfo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, _ := captureOutput(func() {
+			output := captureOutput(t, func() {
 				PrintCertificateInfo(cert, tt.format)
 			})
 			tt.check(output)
@@ -108,7 +89,7 @@ func TestPrintCertificateInfoJSONMarshalError(t *testing.T) {
 		Filename: "test.crt",
 	}
 
-	output, _ := captureOutput(func() {
+	output := captureOutput(t, func() {
 		PrintCertificateInfo(cert, FormatJSON)
 	})
 
@@ -133,7 +114,7 @@ func TestPrintCertificateInfoEmptySANs(t *testing.T) {
 		SANs:         []string{},
 	}
 
-	output, _ := captureOutput(func() {
+	output := captureOutput(t, func() {
 		PrintCertificateInfo(cert, FormatTable)
 	})
 
@@ -188,7 +169,7 @@ func TestPrintCertificateSummaries(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, _ := captureOutput(func() {
+			output := captureOutput(t, func() {
 				PrintCertificateSummaries(summaries, tt.format)
 			})
 			tt.check(output)
@@ -203,7 +184,7 @@ func TestPrintCertificateSummariesJSONMarshalError(t *testing.T) {
 		},
 	}
 
-	output, _ := captureOutput(func() {
+	output := captureOutput(t, func() {
 		PrintCertificateSummaries(summaries, FormatJSON)
 	})
 
@@ -275,7 +256,7 @@ func TestPrintKeyInfo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, _ := captureOutput(func() {
+			output := captureOutput(t, func() {
 				PrintKeyInfo(tt.key, tt.format)
 			})
 			tt.check(output)
@@ -288,7 +269,7 @@ func TestPrintKeyInfoJSONMarshalError(t *testing.T) {
 		Filename: "test.key",
 	}
 
-	output, _ := captureOutput(func() {
+	output := captureOutput(t, func() {
 		PrintKeyInfo(key, FormatJSON)
 	})
 
@@ -345,7 +326,7 @@ func TestPrintKeySummaries(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, _ := captureOutput(func() {
+			output := captureOutput(t, func() {
 				PrintKeySummaries(summaries, tt.format)
 			})
 			tt.check(output)
@@ -360,7 +341,7 @@ func TestPrintKeySummariesJSONMarshalError(t *testing.T) {
 		},
 	}
 
-	output, _ := captureOutput(func() {
+	output := captureOutput(t, func() {
 		PrintKeySummaries(summaries, FormatJSON)
 	})
 
@@ -398,7 +379,7 @@ func TestPrintCertificateSummariesMultiple(t *testing.T) {
 		},
 	}
 
-	output, _ := captureOutput(func() {
+	output := captureOutput(t, func() {
 		PrintCertificateSummaries(summaries, FormatTable)
 	})
 
@@ -435,7 +416,7 @@ func TestPrintKeySummariesMultiple(t *testing.T) {
 		},
 	}
 
-	output, _ := captureOutput(func() {
+	output := captureOutput(t, func() {
 		PrintKeySummaries(summaries, FormatTable)
 	})
 

@@ -179,21 +179,28 @@ func getPQCBits(pqcType string) int {
 
 var ErrEncryptedKey = fmt.Errorf("private key is encrypted, password required")
 
-func decryptKey(block *pem.Block, password string) ([]byte, error) {
-	isEncrypted := x509.IsEncryptedPEMBlock(block) || block.Type == string(certpem.TypeEncryptedKey)
+func isEncryptedPEMBlock(block *pem.Block) bool {
+	if block.Type == string(certpem.TypeEncryptedKey) {
+		return true
+	}
+	_, ok := block.Headers["DEK-Info"]
+	return ok
+}
 
-	if isEncrypted {
-		if password == "" {
-			return nil, ErrEncryptedKey
-		}
-		decrypted, err := x509.DecryptPEMBlock(block, []byte(password))
-		if err != nil {
-			return nil, fmt.Errorf("failed to decrypt key: %w", err)
-		}
-		return decrypted, nil
+func decryptKey(block *pem.Block, password string) ([]byte, error) {
+	if !isEncryptedPEMBlock(block) {
+		return block.Bytes, nil
 	}
 
-	return block.Bytes, nil
+	if password == "" {
+		return nil, ErrEncryptedKey
+	}
+	//nolint:staticcheck // Legacy PEM encryption (RFC 1423) is supported for compatibility with existing encrypted keys.
+	decrypted, err := x509.DecryptPEMBlock(block, []byte(password))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt key: %w", err)
+	}
+	return decrypted, nil
 }
 
 func parsePrivateKeyData(data []byte, filename string, password string) (*KeyInfo, error) {
@@ -462,7 +469,10 @@ func SummarizeDirectoryRecursive(dirPath string, password ...string) ([]KeySumma
 			return nil
 		}
 
-		relPath, _ := filepath.Rel(dirPath, path)
+		relPath, relErr := filepath.Rel(dirPath, path)
+		if relErr != nil {
+			relPath = path
+		}
 
 		key, err := ParsePrivateKey(path, pwd)
 		if err != nil {

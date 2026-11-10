@@ -77,7 +77,10 @@ func SummarizeDirectoryRecursive(dirPath string) ([]CertificateSummary, error) {
 			return nil
 		}
 
-		relPath, _ := filepath.Rel(dirPath, path)
+		relPath, relErr := filepath.Rel(dirPath, path)
+		if relErr != nil {
+			relPath = path
+		}
 
 		cert, err := ParseCertificate(path)
 		if err != nil {

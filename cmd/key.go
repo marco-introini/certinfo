@@ -8,7 +8,6 @@ import (
 
 	"github.com/marco-introini/certinfo/pkg/privatekey"
 	"github.com/marco-introini/certinfo/pkg/utils"
-
 	"github.com/spf13/cobra"
 )
 
@@ -25,11 +24,13 @@ var keyCmd = &cobra.Command{
 		key, err := privatekey.ParsePrivateKey(args[0], password)
 		if err != nil {
 			if err == privatekey.ErrEncryptedKey && password == "" {
-				password = promptPassword("Enter password for encrypted key: ")
-				key, err = privatekey.ParsePrivateKey(args[0], password)
+				password, err = promptPassword("Enter password for encrypted key: ")
+				if err == nil {
+					key, err = privatekey.ParsePrivateKey(args[0], password)
+				}
 			}
 			if err != nil {
-				os.Stderr.WriteString("Error: " + err.Error() + "\n")
+				_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
 		}
@@ -37,11 +38,14 @@ var keyCmd = &cobra.Command{
 	},
 }
 
-func promptPassword(prompt string) string {
+func promptPassword(prompt string) (string, error) {
 	fmt.Fprintln(os.Stderr, prompt)
 	reader := bufio.NewReader(os.Stdin)
-	password, _ := reader.ReadString('\n')
-	return strings.TrimSuffix(password, "\n")
+	password, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(password, "\n"), nil
 }
 
 func init() {

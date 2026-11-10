@@ -149,8 +149,8 @@ func TestParseCertificateWithSAN(t *testing.T) {
 		{
 			name:          "SAN RSA",
 			certPath:      "san-types/san-rsa.crt",
-			expectedCount: 3,
-			expectedSANs:  []string{"localhost", "test.local"},
+			expectedCount: 5,
+			expectedSANs:  []string{"localhost", "test.local", "127.0.0.1", "::1"},
 		},
 	}
 

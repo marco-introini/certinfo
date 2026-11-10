@@ -6,6 +6,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -49,7 +51,14 @@ func getKeyBitsAndType(pub any) (string, int) {
 			return "ECDSA", key.Curve.Params().BitSize
 		}
 	default:
-		return fmt.Sprintf("%T", pub), 0
+		typeName := fmt.Sprintf("%T", pub)
+		if strings.Contains(typeName, "mldsa") {
+			return "ML-DSA", 0
+		}
+		if strings.Contains(typeName, "mlkem") {
+			return "ML-KEM", 0
+		}
+		return typeName, 0
 	}
 }
 
@@ -232,8 +241,13 @@ func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error
 	}
 	info.KeyType, info.Bits = getKeyBitsAndType(cert.PublicKey)
 
-	if len(cert.DNSNames) > 0 {
-		info.SANs = cert.DNSNames
+	info.SANs = append(info.SANs, cert.DNSNames...)
+	for _, ip := range cert.IPAddresses {
+		info.SANs = append(info.SANs, net.IP(ip).String())
+	}
+	info.SANs = append(info.SANs, cert.EmailAddresses...)
+	for _, uri := range cert.URIs {
+		info.SANs = append(info.SANs, (*url.URL)(uri).String())
 	}
 
 	return info, nil

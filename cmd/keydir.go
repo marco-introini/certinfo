@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/marco-introini/certinfo/pkg/privatekey"
@@ -27,7 +28,7 @@ var keydirCmd = &cobra.Command{
 		}
 
 		if err != nil {
-			os.Stderr.WriteString("Error: " + err.Error() + "\n")
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -36,7 +37,6 @@ var keydirCmd = &cobra.Command{
 }
 
 func init() {
-	keydirCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "Search recursively")
 	keydirCmd.Flags().StringVarP(&keydirPassword, "password", "p", "", "Password for encrypted private keys")
 	rootCmd.AddCommand(keydirCmd)
 }
