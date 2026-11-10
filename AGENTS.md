@@ -103,9 +103,12 @@ go test -v ./pkg/certificate/parser_test.go ./pkg/certificate/parser.go
 - Related functionality in same package
 - Tests in `<file>_test.go` alongside implementation
 - Package structure:
-  - `cmd/` - CLI command handlers (Cobra): root, cert, dir, key, keydir
-  - `pkg/certificate/` - Certificate parsing (parser.go) and analysis (analyzer.go)
-  - `pkg/privatekey/` - Private key parsing (parser.go)
+  - `cmd/` - CLI command handlers (Cobra): root, cert, dir, key, keydir, p12, match, pubkey, verify, version, jks
+  - `pkg/certificate/` - Certificate parsing (parser.go), analysis (analyzer.go) and chain verification (verify.go)
+  - `pkg/privatekey/` - Private key parsing (parser.go) and certificate matching (match.go)
+  - `pkg/pkcs12/` - PKCS#12 file parsing (parser.go)
+  - `pkg/publickey/` - Public key parsing (parser.go)
+  - `pkg/jks/` - Java KeyStore parsing (parser.go)
   - `pkg/pem/` - PEM format handling (pem.go)
   - `pkg/utils/` - Shared output formatting utilities (output.go)
 
@@ -120,14 +123,16 @@ See guidelines in @.ai/testing_guidelines.md
 
 ### CLI Commands (Cobra)
 - Root command in `cmd/root.go`
-- Subcommands: `cert`, `dir`, `key`, `keydir` in separate files
-- Global flags defined in `cmd/root.go` (`format`, `recursive`)
+- Subcommands: `cert`, `dir`, `key`, `keydir`, `p12`, `match`, `pubkey`, `verify`, `version`, `jks` in separate files
+- Shared helpers in `cmd/password.go` (password resolution from flag, file or environment)
+- Global flags defined in `cmd/root.go` (`format`, `recursive`, `no-color`)
 - Use `cobra.Command.Execute()` pattern with error handling and `os.Exit(1)`
 
 ### Output Formatting
 - Use `text/tabwriter` for table output
 - JSON output via `encoding/json.MarshalIndent`
-- Format selection via `OutputFormat` type (`FormatTable`, `FormatJSON`)
+- CSV output via `encoding/csv` for summary commands
+- Format selection via `OutputFormat` type (`FormatTable`, `FormatJSON`, `FormatCSV`)
 - Consistent field ordering in struct definitions and output
 - EKU (Extended Key Usage) displayed only in detailed certificate output (`cert` command), not in summary tables
 
@@ -137,11 +142,11 @@ Prioritize standard library and golang.org/x/ packages for system and terminal h
 
 ## Project Overview
 
-- **Language**: Go 1.25
+- **Language**: Go 1.26
 - **Module**: `github.com/marco-introini/certinfo`
-- **Dependencies**: `github.com/spf13/cobra v1.8.0` for CLI
-- **Purpose**: CLI tool to analyze X.509 certificates and private keys
-- **Features**: Parse RSA, ECDSA, Ed25519, Ed448 keys; support PEM/DER formats; directory scanning; table and JSON output; 42+ tests
+- **Dependencies**: `github.com/spf13/cobra` for CLI, `software.sslmate.com/src/go-pkcs12` for PKCS#12, `github.com/pavlo-v-chernykh/keystore-go/v4` for JKS
+- **Purpose**: CLI tool to analyze X.509 certificates, private keys, PKCS#12 and JKS keystores
+- **Features**: Parse RSA, ECDSA, Ed25519, Ed448, PQC keys; support PEM/DER formats; directory scanning; certificate/key matching; chain verification with CRL/OCSP; table, JSON and CSV output
 
 ## Package Structure
 

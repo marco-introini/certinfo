@@ -1,21 +1,34 @@
 package utils
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
 
 	"github.com/marco-introini/certinfo/pkg/certificate"
+	"github.com/marco-introini/certinfo/pkg/jks"
 	"github.com/marco-introini/certinfo/pkg/pkcs12"
 	"github.com/marco-introini/certinfo/pkg/privatekey"
+	"github.com/marco-introini/certinfo/pkg/publickey"
 )
 
 func writef(w io.Writer, format string, a ...any) {
 	_, _ = fmt.Fprintf(w, format, a...)
+}
+
+func PrintJSON(v any) {
+	jsonBytes, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		writef(os.Stderr, "Error marshaling JSON: %v\n", err)
+		return
+	}
+	fmt.Println(string(jsonBytes))
 }
 
 type OutputFormat string
@@ -23,6 +36,7 @@ type OutputFormat string
 const (
 	FormatTable OutputFormat = "table"
 	FormatJSON  OutputFormat = "json"
+	FormatCSV   OutputFormat = "csv"
 )
 
 const dateFormat = "2006-01-02 15:04:05"
@@ -66,12 +80,34 @@ func PrintCertificateInfo(cert *certificate.CertificateInfo, format OutputFormat
 	if len(cert.PQCTypes) > 0 {
 		writef(w, "PQC Types:\t%v\n", cert.PQCTypes)
 	}
+	writef(w, "Weak:\t%v\n", cert.IsWeak)
+	if len(cert.WeakReasons) > 0 {
+		writef(w, "Weak Reasons:\t%v\n", cert.WeakReasons)
+	}
 
 	if len(cert.SANs) > 0 {
 		writef(w, "SANs:\t%v\n", cert.SANs)
 	}
 	if len(cert.ExtKeyUsageStrings) > 0 {
 		writef(w, "Ext Key Usage:\t%v\n", cert.ExtKeyUsageStrings)
+	}
+	if len(cert.KeyUsageStrings) > 0 {
+		writef(w, "Key Usage:\t%v\n", cert.KeyUsageStrings)
+	}
+	if cert.SubjectKeyID != "" {
+		writef(w, "Subject Key ID:\t%s\n", cert.SubjectKeyID)
+	}
+	if cert.AuthorityKeyID != "" {
+		writef(w, "Authority Key ID:\t%s\n", cert.AuthorityKeyID)
+	}
+	if len(cert.CRLDistributionPoints) > 0 {
+		writef(w, "CRL Distribution Points:\t%v\n", cert.CRLDistributionPoints)
+	}
+	if len(cert.OCSPServers) > 0 {
+		writef(w, "OCSP Servers:\t%v\n", cert.OCSPServers)
+	}
+	if len(cert.CertificatePolicies) > 0 {
+		writef(w, "Certificate Policies:\t%v\n", cert.CertificatePolicies)
 	}
 }
 
@@ -91,6 +127,24 @@ func PrintCertificateSummaries(summaries []certificate.CertificateSummary, forma
 			return
 		}
 		fmt.Println(string(jsonBytes))
+		return
+	}
+
+	if format == FormatCSV {
+		writer := csv.NewWriter(os.Stdout)
+		defer writer.Flush()
+		_ = writer.Write([]string{"FILENAME", "ENCODING", "CN", "ISSUER", "STATUS", "QUANTUM_SAFE", "PQC_TYPES"})
+		for _, s := range summaries {
+			pqcTypes := "-"
+			if len(s.PQCTypes) > 0 {
+				pqcTypes = strings.Join(s.PQCTypes, ",")
+			}
+			qs := "No"
+			if s.IsQuantumSafe {
+				qs = "Yes"
+			}
+			_ = writer.Write([]string{s.Filename, s.Encoding, s.CommonName, s.Issuer, s.Status, qs, pqcTypes})
+		}
 		return
 	}
 
@@ -197,6 +251,34 @@ func PrintKeyInfo(key *privatekey.KeyInfo, format OutputFormat) {
 	writef(w, "Algorithm:\t%s\n", key.Algorithm)
 	writef(w, "Bits:\t%d\n", key.Bits)
 	writef(w, "Quantum Safe:\t%v\n", key.IsQuantumSafe)
+	writef(w, "Weak:\t%v\n", key.IsWeak)
+	if len(key.WeakReasons) > 0 {
+		writef(w, "Weak Reasons:\t%v\n", key.WeakReasons)
+	}
+	if key.Curve != "" {
+		writef(w, "Curve:\t%s\n", key.Curve)
+	}
+}
+
+func PrintPublicKeyInfo(key *publickey.PublicKeyInfo, format OutputFormat) {
+	if format == FormatJSON {
+		PrintJSON(key)
+		return
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	defer func() { _ = w.Flush() }()
+
+	writef(w, "Filename:\t%s\n", key.Filename)
+	writef(w, "Encoding:\t%s\n", key.Encoding)
+	writef(w, "Key Type:\t%s\n", key.KeyType)
+	writef(w, "Algorithm:\t%s\n", key.Algorithm)
+	writef(w, "Bits:\t%d\n", key.Bits)
+	writef(w, "Quantum Safe:\t%v\n", key.IsQuantumSafe)
+	writef(w, "Weak:\t%v\n", key.IsWeak)
+	if len(key.WeakReasons) > 0 {
+		writef(w, "Weak Reasons:\t%v\n", key.WeakReasons)
+	}
 	if key.Curve != "" {
 		writef(w, "Curve:\t%s\n", key.Curve)
 	}
@@ -210,6 +292,20 @@ func PrintKeySummaries(summaries []privatekey.KeySummary, format OutputFormat) {
 			return
 		}
 		fmt.Println(string(jsonBytes))
+		return
+	}
+
+	if format == FormatCSV {
+		writer := csv.NewWriter(os.Stdout)
+		defer writer.Flush()
+		_ = writer.Write([]string{"FILENAME", "ENCODING", "TYPE", "BITS", "QUANTUM_SAFE"})
+		for _, s := range summaries {
+			qs := "No"
+			if s.IsQuantumSafe {
+				qs = "Yes"
+			}
+			_ = writer.Write([]string{s.Filename, s.Encoding, s.KeyType, strconv.Itoa(s.Bits), qs})
+		}
 		return
 	}
 
@@ -357,6 +453,56 @@ func PrintP12Info(p12 *pkcs12.P12Info, format OutputFormat) {
 
 	for i, k := range p12.PrivateKeys {
 		writef(w, "--- Private Key %d ---\n", i+1)
+		PrintKeyInfo(k.Key, format)
+		writef(w, "\n")
+	}
+}
+
+func PrintJKSInfo(info *jks.JKSInfo, format OutputFormat) {
+	if format == FormatJSON {
+		type jsonOutput struct {
+			Filename         string                        `json:"filename"`
+			AliasCount       int                           `json:"aliasCount"`
+			CertificateCount int                           `json:"certificateCount"`
+			PrivateKeyCount  int                           `json:"privateKeyCount"`
+			Certificates     []certificate.CertificateInfo `json:"certificates"`
+			PrivateKeys      []privatekey.KeyInfo          `json:"privateKeys"`
+		}
+		out := jsonOutput{
+			Filename:         info.Filename,
+			AliasCount:       info.AliasCount,
+			CertificateCount: len(info.Certificates),
+			PrivateKeyCount:  len(info.PrivateKeys),
+			Certificates:     []certificate.CertificateInfo{},
+			PrivateKeys:      []privatekey.KeyInfo{},
+		}
+		for _, c := range info.Certificates {
+			out.Certificates = append(out.Certificates, *c.Cert)
+		}
+		for _, k := range info.PrivateKeys {
+			out.PrivateKeys = append(out.PrivateKeys, *k.Key)
+		}
+		PrintJSON(out)
+		return
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	defer func() { _ = w.Flush() }()
+
+	writef(w, "Filename:\t%s\n", info.Filename)
+	writef(w, "Alias Count:\t%d\n", info.AliasCount)
+	writef(w, "Certificate Count:\t%d\n", len(info.Certificates))
+	writef(w, "Private Key Count:\t%d\n", len(info.PrivateKeys))
+	writef(w, "\n")
+
+	for _, c := range info.Certificates {
+		writef(w, "--- Alias: %s ---\n", c.Alias)
+		PrintCertificateInfo(c.Cert, format)
+		writef(w, "\n")
+	}
+
+	for _, k := range info.PrivateKeys {
+		writef(w, "--- Alias: %s ---\n", k.Alias)
 		PrintKeyInfo(k.Key, format)
 		writef(w, "\n")
 	}

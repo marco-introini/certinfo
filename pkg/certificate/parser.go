@@ -5,6 +5,8 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/asn1"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"net/url"
@@ -16,23 +18,34 @@ import (
 )
 
 type CertificateInfo struct {
-	Filename           string
-	Encoding           string
-	CommonName         string
-	Issuer             string
-	Subject            string
-	NotBefore          time.Time
-	NotAfter           time.Time
-	Algorithm          string
-	KeyType            string
-	Bits               int
-	SerialNumber       string
-	SANs               []string
-	IsCA               bool
-	ExtKeyUsage        []x509.ExtKeyUsage
-	ExtKeyUsageStrings []string
-	IsQuantumSafe      bool
-	PQCTypes           []string
+	Filename              string
+	Encoding              string
+	CommonName            string
+	Issuer                string
+	Subject               string
+	NotBefore             time.Time
+	NotAfter              time.Time
+	Algorithm             string
+	KeyType               string
+	Bits                  int
+	SerialNumber          string
+	SANs                  []string
+	IsCA                  bool
+	KeyUsage              x509.KeyUsage
+	KeyUsageStrings       []string
+	ExtKeyUsage           []x509.ExtKeyUsage
+	ExtKeyUsageStrings    []string
+	SubjectKeyID          string
+	AuthorityKeyID        string
+	CRLDistributionPoints []string
+	OCSPServers           []string
+	CertificatePolicies   []string
+	IsQuantumSafe         bool
+	PQCTypes              []string
+	IsWeak                bool
+	WeakReasons           []string
+	PublicKey             any               `json:"-"`
+	x509Certificate       *x509.Certificate `json:"-"`
 }
 
 func getKeyBitsAndType(pub any) (string, int) {
@@ -121,6 +134,46 @@ func getPQCTypesFromAlgorithmName(algoName string) []string {
 		}
 	}
 	return pqcTypes
+}
+
+func policyIdentifiersToStrings(ids []asn1.ObjectIdentifier) []string {
+	var result []string
+	for _, id := range ids {
+		result = append(result, id.String())
+	}
+	return result
+}
+
+func keyUsageToStrings(ku x509.KeyUsage) []string {
+	var usages []string
+	if ku&x509.KeyUsageDigitalSignature != 0 {
+		usages = append(usages, "Digital Signature")
+	}
+	if ku&x509.KeyUsageContentCommitment != 0 {
+		usages = append(usages, "Content Commitment")
+	}
+	if ku&x509.KeyUsageKeyEncipherment != 0 {
+		usages = append(usages, "Key Encipherment")
+	}
+	if ku&x509.KeyUsageDataEncipherment != 0 {
+		usages = append(usages, "Data Encipherment")
+	}
+	if ku&x509.KeyUsageKeyAgreement != 0 {
+		usages = append(usages, "Key Agreement")
+	}
+	if ku&x509.KeyUsageCertSign != 0 {
+		usages = append(usages, "Certificate Sign")
+	}
+	if ku&x509.KeyUsageCRLSign != 0 {
+		usages = append(usages, "CRL Sign")
+	}
+	if ku&x509.KeyUsageEncipherOnly != 0 {
+		usages = append(usages, "Encipher Only")
+	}
+	if ku&x509.KeyUsageDecipherOnly != 0 {
+		usages = append(usages, "Decipher Only")
+	}
+	return usages
 }
 
 func extKeyUsageToString(eku x509.ExtKeyUsage) string {
@@ -224,20 +277,29 @@ func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error
 	}
 
 	info := &CertificateInfo{
-		Filename:           filePath,
-		Encoding:           encoding,
-		CommonName:         cert.Subject.CommonName,
-		Issuer:             cert.Issuer.CommonName,
-		Subject:            cert.Subject.String(),
-		NotBefore:          cert.NotBefore,
-		NotAfter:           cert.NotAfter,
-		Algorithm:          algoName,
-		SerialNumber:       cert.SerialNumber.String(),
-		IsCA:               cert.IsCA,
-		ExtKeyUsage:        cert.ExtKeyUsage,
-		ExtKeyUsageStrings: extKeyUsageStrings,
-		IsQuantumSafe:      isQuantumSafe,
-		PQCTypes:           pqcTypes,
+		Filename:              filePath,
+		Encoding:              encoding,
+		CommonName:            cert.Subject.CommonName,
+		Issuer:                cert.Issuer.CommonName,
+		Subject:               cert.Subject.String(),
+		NotBefore:             cert.NotBefore,
+		NotAfter:              cert.NotAfter,
+		Algorithm:             algoName,
+		SerialNumber:          cert.SerialNumber.String(),
+		IsCA:                  cert.IsCA,
+		KeyUsage:              cert.KeyUsage,
+		KeyUsageStrings:       keyUsageToStrings(cert.KeyUsage),
+		ExtKeyUsage:           cert.ExtKeyUsage,
+		ExtKeyUsageStrings:    extKeyUsageStrings,
+		SubjectKeyID:          hex.EncodeToString(cert.SubjectKeyId),
+		AuthorityKeyID:        hex.EncodeToString(cert.AuthorityKeyId),
+		CRLDistributionPoints: cert.CRLDistributionPoints,
+		OCSPServers:           cert.OCSPServer,
+		CertificatePolicies:   policyIdentifiersToStrings(cert.PolicyIdentifiers),
+		IsQuantumSafe:         isQuantumSafe,
+		PQCTypes:              pqcTypes,
+		PublicKey:             cert.PublicKey,
+		x509Certificate:       cert,
 	}
 	info.KeyType, info.Bits = getKeyBitsAndType(cert.PublicKey)
 
@@ -250,7 +312,32 @@ func parseCertificateData(data []byte, filePath string) (*CertificateInfo, error
 		info.SANs = append(info.SANs, (*url.URL)(uri).String())
 	}
 
+	info.evaluateWeakness()
+
 	return info, nil
+}
+
+func (c *CertificateInfo) evaluateWeakness() {
+	algoLower := strings.ToLower(c.Algorithm)
+	if strings.Contains(algoLower, "sha1") || strings.Contains(algoLower, "md5") {
+		c.IsWeak = true
+		c.WeakReasons = append(c.WeakReasons, "weak signature algorithm: "+c.Algorithm)
+	}
+
+	if c.KeyType == "RSA" && c.Bits < 2048 {
+		c.IsWeak = true
+		c.WeakReasons = append(c.WeakReasons, fmt.Sprintf("RSA key size %d is below 2048 bits", c.Bits))
+	}
+
+	if c.KeyType == "ECDSA" && c.Bits < 256 {
+		c.IsWeak = true
+		c.WeakReasons = append(c.WeakReasons, fmt.Sprintf("ECDSA curve size %d is below 256 bits", c.Bits))
+	}
+
+	if time.Now().After(c.NotAfter) {
+		c.IsWeak = true
+		c.WeakReasons = append(c.WeakReasons, "certificate is expired")
+	}
 }
 
 func ParseCertificate(filePath string) (*CertificateInfo, error) {
@@ -264,4 +351,41 @@ func ParseCertificate(filePath string) (*CertificateInfo, error) {
 
 func ParseCertificateFromBytes(data []byte) (*CertificateInfo, error) {
 	return parseCertificateData(data, "")
+}
+
+func matchDNS(hostname, pattern string) bool {
+	if strings.EqualFold(pattern, hostname) {
+		return true
+	}
+	if strings.HasPrefix(pattern, "*.") {
+		suffix := pattern[1:]
+		return strings.HasSuffix(strings.ToLower(hostname), strings.ToLower(suffix)) &&
+			strings.Contains(hostname, ".")
+	}
+	return false
+}
+
+// MatchesHostname reports whether the certificate is valid for the given
+// hostname. It checks DNS names, the common name and IP addresses.
+func (c *CertificateInfo) MatchesHostname(hostname string) bool {
+	if hostname == "" {
+		return false
+	}
+
+	if ip := net.ParseIP(hostname); ip != nil {
+		for _, san := range c.SANs {
+			if sanIP := net.ParseIP(san); sanIP != nil && sanIP.Equal(ip) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, san := range c.SANs {
+		if matchDNS(hostname, san) {
+			return true
+		}
+	}
+
+	return matchDNS(hostname, c.CommonName)
 }

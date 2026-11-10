@@ -10,7 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var keydirPassword string
+var (
+	keydirPassword     string
+	keydirPasswordFile string
+)
 
 var keydirCmd = &cobra.Command{
 	Use:   "keydir [directory]",
@@ -18,13 +21,17 @@ var keydirCmd = &cobra.Command{
 	Long:  "Summarize all private keys in a directory (type and bits)",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		var summaries []privatekey.KeySummary
-		var err error
+		password, err := resolvePassword(keydirPassword, keydirPasswordFile)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 
+		var summaries []privatekey.KeySummary
 		if recursive {
-			summaries, err = privatekey.SummarizeDirectoryRecursive(args[0], keydirPassword)
+			summaries, err = privatekey.SummarizeDirectoryRecursive(args[0], password)
 		} else {
-			summaries, err = privatekey.SummarizeDirectory(args[0], keydirPassword)
+			summaries, err = privatekey.SummarizeDirectory(args[0], password)
 		}
 
 		if err != nil {
@@ -38,5 +45,6 @@ var keydirCmd = &cobra.Command{
 
 func init() {
 	keydirCmd.Flags().StringVarP(&keydirPassword, "password", "p", "", "Password for encrypted private keys")
+	keydirCmd.Flags().StringVar(&keydirPasswordFile, "password-file", "", "File containing the password for encrypted private keys")
 	rootCmd.AddCommand(keydirCmd)
 }

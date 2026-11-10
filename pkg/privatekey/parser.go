@@ -25,6 +25,9 @@ type KeyInfo struct {
 	Bits          int
 	Curve         string
 	IsQuantumSafe bool
+	IsWeak        bool
+	WeakReasons   []string
+	raw           any
 }
 
 type KeySummary struct {
@@ -257,7 +260,12 @@ func ParsePrivateKey(filePath string, password ...string) (*KeyInfo, error) {
 		pwd = password[0]
 	}
 
-	return parsePrivateKeyData(data, filePath, pwd)
+	info, err := parsePrivateKeyData(data, filePath, pwd)
+	if err != nil {
+		return nil, err
+	}
+	info.evaluateWeakness()
+	return info, nil
 }
 
 func ParsePrivateKeyFromBytes(data []byte, filename string, password ...string) (*KeyInfo, error) {
@@ -266,7 +274,12 @@ func ParsePrivateKeyFromBytes(data []byte, filename string, password ...string) 
 		pwd = password[0]
 	}
 
-	return parsePrivateKeyData(data, filename, pwd)
+	info, err := parsePrivateKeyData(data, filename, pwd)
+	if err != nil {
+		return nil, err
+	}
+	info.evaluateWeakness()
+	return info, nil
 }
 
 func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (*KeyInfo, error) {
@@ -277,6 +290,7 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 		info.KeyType = "RSA"
 		info.Bits = key.N.BitLen()
 		info.Algorithm = "PKCS#1 v1.5"
+		info.raw = key
 		return info, nil
 	}
 
@@ -286,6 +300,7 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 		info.Bits = ecKey.Curve.Params().BitSize
 		info.Curve = ecKey.Curve.Params().Name
 		info.Algorithm = "ECDSA"
+		info.raw = ecKey
 		return info, nil
 	}
 
@@ -296,6 +311,7 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 			info.KeyType = "RSA"
 			info.Bits = key.N.BitLen()
 			info.Algorithm = "PKCS#8"
+			info.raw = key
 			return info, nil
 		case *ecdsa.PrivateKey:
 			info.KeyType = "EC"
@@ -314,11 +330,13 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 				info.Bits = key.Curve.Params().BitSize
 				info.Curve = key.Curve.Params().Name
 			}
+			info.raw = key
 			return info, nil
 		case ed25519.PrivateKey:
 			info.KeyType = "Ed25519"
 			info.Bits = 256
 			info.Algorithm = "EdDSA"
+			info.raw = key
 			return info, nil
 		default:
 			typeName := fmt.Sprintf("%T", key)
@@ -412,6 +430,18 @@ func parseKey(der []byte, filename string, encoding string, pqcTypes []string) (
 		info.IsQuantumSafe = true
 	}
 	return info, nil
+}
+
+func (k *KeyInfo) evaluateWeakness() {
+	if k.KeyType == "RSA" && k.Bits < 2048 {
+		k.IsWeak = true
+		k.WeakReasons = append(k.WeakReasons, fmt.Sprintf("RSA key size %d is below 2048 bits", k.Bits))
+	}
+
+	if k.KeyType == "EC" && k.Bits < 256 {
+		k.IsWeak = true
+		k.WeakReasons = append(k.WeakReasons, fmt.Sprintf("EC curve size %d is below 256 bits", k.Bits))
+	}
 }
 
 func SummarizeDirectory(dirPath string, password ...string) ([]KeySummary, error) {

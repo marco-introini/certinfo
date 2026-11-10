@@ -2,6 +2,7 @@ package pkcs12
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/asn1"
@@ -410,6 +411,12 @@ func parseP12Data(data []byte, filename string, password string) (*P12Info, erro
 			keyBytes, err = x509.MarshalECPrivateKey(key)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal ECDSA key: %w", err)
+			}
+		case ed25519.PrivateKey:
+			var err error
+			keyBytes, err = x509.MarshalPKCS8PrivateKey(key)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal Ed25519 key: %w", err)
 			}
 		default:
 			return nil, fmt.Errorf("unsupported private key type: %T", privateKey)

@@ -10,6 +10,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	failOnExpired      bool
+	failOnExpiringSoon bool
+)
+
 var dirCmd = &cobra.Command{
 	Use:   "dir [directory]",
 	Short: "Summarize certificates in a directory",
@@ -31,9 +36,20 @@ var dirCmd = &cobra.Command{
 		}
 
 		utils.PrintCertificateSummaries(summaries, utils.OutputFormat(format))
+
+		for _, s := range summaries {
+			if failOnExpired && s.Status == "expired" {
+				os.Exit(2)
+			}
+			if failOnExpiringSoon && s.Status == "expiring soon" {
+				os.Exit(2)
+			}
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(dirCmd)
+	dirCmd.Flags().BoolVar(&failOnExpired, "fail-on-expired", false, "Exit with code 2 if any certificate is expired")
+	dirCmd.Flags().BoolVar(&failOnExpiringSoon, "fail-on-expiring-soon", false, "Exit with code 2 if any certificate is expiring soon")
 }

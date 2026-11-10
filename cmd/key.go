@@ -11,7 +11,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var keyPassword string
+var (
+	keyPassword     string
+	keyPasswordFile string
+)
 
 var keyCmd = &cobra.Command{
 	Use:   "key [file]",
@@ -19,7 +22,11 @@ var keyCmd = &cobra.Command{
 	Long:  "Show information about a private key file (RSA, EC, Ed25519, PQC)",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		password := keyPassword
+		password, err := resolvePassword(keyPassword, keyPasswordFile)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 
 		key, err := privatekey.ParsePrivateKey(args[0], password)
 		if err != nil {
@@ -50,5 +57,6 @@ func promptPassword(prompt string) (string, error) {
 
 func init() {
 	keyCmd.Flags().StringVarP(&keyPassword, "password", "p", "", "Password for encrypted private key")
+	keyCmd.Flags().StringVar(&keyPasswordFile, "password-file", "", "File containing the password for the encrypted private key")
 	rootCmd.AddCommand(keyCmd)
 }
